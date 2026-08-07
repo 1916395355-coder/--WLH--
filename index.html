@@ -181,6 +181,12 @@
     .legacy-hotspot:hover { background:rgba(73,166,232,.12); box-shadow:inset 0 1px rgba(73,166,232,.28),inset 0 -1px rgba(73,166,232,.28); }
     .legacy-hotspot:focus-visible { outline:2px solid #2e97df; outline-offset:-2px; background:rgba(73,166,232,.14); }
     .legacy-hotspot.selected { background:rgba(73,166,232,.16); }
+    .client-context-menu { position:absolute; z-index:4; min-width:172px; padding:5px; border:1px solid #d9e3df; border-radius:7px; background:#fff; box-shadow:0 12px 26px rgba(30,49,41,.18); opacity:0; pointer-events:none; transform:translateY(-4px) scale(.98); transform-origin:top left; transition:opacity .14s ease,transform .14s ease; }
+    .client-context-menu.is-open { opacity:1; pointer-events:auto; transform:translateY(0) scale(1); }
+    .client-context-menu button { width:100%; height:34px; display:flex; align-items:center; gap:9px; padding:0 10px; border:0; border-radius:4px; background:transparent; color:#3d5048; font:600 12px/1 inherit; text-align:left; cursor:pointer; }
+    .client-context-menu button::before { content:""; width:13px; height:13px; border:1.5px solid #5d927f; border-radius:50%; box-sizing:border-box; }
+    .client-context-menu button:hover { background:#eff7f3; color:#2e6f59; }
+    .client-context-menu button:focus-visible { outline:2px solid #5d927f; outline-offset:1px; }
     .prototype-window--image .drawer-backdrop { inset:0; }
     .prototype-window--image .hardware-drawer { top:50%; right:50%; bottom:auto; width:min(600px,calc(100% - 48px)); height:min(720px,calc(100% - 48px)); border:1px solid #dfe6e2; border-radius:10px; box-shadow:0 24px 70px rgba(24,43,35,.24); transform:translate(50%,-46%) scale(.96); opacity:0; transition:transform .28s cubic-bezier(.2,0,0,1),opacity .22s ease; }
     .prototype-window--image .hardware-drawer.is-open { transform:translate(50%,-50%) scale(1); opacity:1; }
@@ -292,9 +298,9 @@
     const prdMarkup = `<section class="prd-document" aria-label="需求文档">
       <div class="prd-module"><h2>需求背景</h2><div class="prd-module__content"><p>当前客户机资产列表字段过多，导致长列表横向滚动频繁。网管在排查单机硬件问题时，定位信息效率低，且看串行容易误判。</p></div></div>
       <div class="prd-module"><h2>设计目标</h2><div class="prd-module__content"><p>通过双击打开详情面板，把单台客户机的硬件配置汇总展示。</p></div></div>
-      <div class="prd-module"><h2>功能详述</h2><div class="prd-module__content"><p>路径：客户机管理→客户机资产列表</p><p>功能1：查看客户机硬件详情</p><p>双击列表中的单条数据，即可打开硬件详情</p></div></div>
+      <div class="prd-module"><h2>功能详述</h2><div class="prd-module__content"><p>路径：客户机管理→客户机资产列表</p><p>功能1：查看客户机硬件详情</p><p>双击列表中的单条数据，即可打开硬件详情</p><p>右键列表中的单条数据，弹出菜单，点击“查看客户机详情”即可打开详情</p></div></div>
     </section><h2 class="prototype-section-title">硬件详情</h2>`;
-    const legacyMarkup = client => `<div class="legacy-hotspots">${['28.05%','31.35%','34.65%','37.95%','41.25%','44.55%'].map((top,index) => `<button class="legacy-hotspot" style="top:${top}" type="button" data-client="${index}" aria-label="查看 ${clients[index].name} 硬件详情"></button>`).join('')}</div><div class="drawer-backdrop" id="drawerBackdrop"></div><aside class="hardware-drawer" id="hardwareDrawer" aria-label="客户机硬件详情"><div class="drawer-head"><div><div class="drawer-kicker">客户机硬件详情</div><h2 class="drawer-title" id="drawerTitle">${client.name}</h2><span class="drawer-group" id="drawerGroup">${client.group}</span></div><button class="icon-button" id="drawerClose" type="button" aria-label="关闭详情">×</button></div><div class="drawer-body" id="drawerBody">${detailMarkup(client)}</div></aside>`;
+    const legacyMarkup = client => `<div class="legacy-hotspots">${['28.05%','31.35%','34.65%','37.95%','41.25%','44.55%'].map((top,index) => `<button class="legacy-hotspot" style="top:${top}" type="button" data-client="${index}" aria-label="查看 ${clients[index].name} 硬件详情"></button>`).join('')}</div><div class="client-context-menu" id="clientContextMenu" role="menu"><button type="button" id="viewClientDetail" role="menuitem">查看客户机详情</button></div><div class="drawer-backdrop" id="drawerBackdrop"></div><aside class="hardware-drawer" id="hardwareDrawer" aria-label="客户机硬件详情"><div class="drawer-head"><div><div class="drawer-kicker">客户机硬件详情</div><h2 class="drawer-title" id="drawerTitle">${client.name}</h2><span class="drawer-group" id="drawerGroup">${client.group}</span></div><button class="icon-button" id="drawerClose" type="button" aria-label="关闭详情">×</button></div><div class="drawer-body" id="drawerBody">${detailMarkup(client)}</div></aside>`;
     function renderHardwarePrototype() {
       const first = clients[0];
       content.innerHTML = `<div class="content-view"><div class="prototype-heading"><div><div class="eyebrow">${padDate} / 需求 1</div><h1>客户机硬件详细查看功能</h1></div><div class="prototype-path">客户机管理  /  客户机资产列表</div></div><div class="prototype-window"><div class="app-bar"><div class="app-title"><span class="app-title__mark">机</span><span>客户机资产列表</span><span class="app-context">共 3 台</span></div><span class="app-user">系统正常</span></div><div class="asset-layout"><aside class="asset-nav"><div class="asset-nav__label">客户机管理</div><div class="asset-nav__item">客户机分组</div><div class="asset-nav__item active">客户机资产</div><div class="asset-nav__item">资产变更记录</div></aside><section class="asset-main"><div class="asset-toolbar"><h2>客户机资产<span class="asset-count">3 台</span></h2><input class="search" aria-label="搜索客户机" placeholder="搜索客户机名称"></div><div class="asset-table-shell"><table class="asset-table"><thead><tr><th style="width:18%">客户机名称</th><th style="width:16%">所在分组</th><th style="width:24%">主板</th><th style="width:23%">CPU</th><th style="width:19%">运行状态</th></tr></thead><tbody>${clients.map((client,index) => `<tr tabindex="0" class="${index===0?'selected':''}" data-client="${index}"><td class="device-name">${client.name}</td><td>${client.group}</td><td title="${client.board}">${client.board}</td><td title="${client.cpu}">${client.cpu}</td><td><span class="online">在线</span></td></tr>`).join('')}</tbody></table></div></section></div><div class="drawer-backdrop is-open" id="drawerBackdrop"></div><aside class="hardware-drawer is-open" id="hardwareDrawer" aria-label="客户机硬件详情"><div class="drawer-head"><div><div class="drawer-kicker">客户机硬件详情</div><h2 class="drawer-title" id="drawerTitle">${first.name}</h2><span class="drawer-group" id="drawerGroup">${first.group}</span></div><button class="icon-button" id="drawerClose" type="button" aria-label="关闭详情">×</button></div><div class="drawer-body" id="drawerBody">${detailMarkup(first)}</div></aside></div></div>`;
@@ -311,9 +317,24 @@
       drawer.setAttribute('role', 'dialog');
       drawer.setAttribute('aria-modal', 'true');
       const backdrop = document.getElementById('drawerBackdrop');
+      const contextMenu = document.getElementById('clientContextMenu');
+      let contextClientIndex = 0;
       const closeDrawer = () => { drawer.classList.remove('is-open'); backdrop.classList.remove('is-open'); };
+      const closeContextMenu = () => contextMenu.classList.remove('is-open');
+      const openContextMenu = (event, index) => {
+        event.preventDefault();
+        contextClientIndex = Number(index);
+        const bounds = prototypeWindow.getBoundingClientRect();
+        const maxLeft = bounds.width - 180;
+        const maxTop = bounds.height - 46;
+        contextMenu.style.left = `${Math.max(8, Math.min(event.clientX - bounds.left, maxLeft))}px`;
+        contextMenu.style.top = `${Math.max(8, Math.min(event.clientY - bounds.top, maxTop))}px`;
+        contextMenu.classList.add('is-open');
+      };
       const openDrawer = index => { const client = clients[index]; document.getElementById('drawerTitle').textContent = client.name; document.getElementById('drawerGroup').textContent = client.group; document.getElementById('drawerBody').innerHTML = detailMarkup(client); drawer.classList.add('is-open'); backdrop.classList.add('is-open'); document.querySelectorAll('.legacy-hotspot').forEach(row => row.classList.toggle('selected', row.dataset.client === String(index))); };
-      document.querySelectorAll('.legacy-hotspot').forEach(row => { row.addEventListener('dblclick', () => openDrawer(row.dataset.client)); row.addEventListener('keydown', event => { if (event.key === 'Enter') openDrawer(row.dataset.client); }); });
+      document.querySelectorAll('.legacy-hotspot').forEach(row => { row.addEventListener('dblclick', () => openDrawer(row.dataset.client)); row.addEventListener('contextmenu', event => openContextMenu(event, row.dataset.client)); row.addEventListener('keydown', event => { if (event.key === 'Enter') openDrawer(row.dataset.client); }); });
+      document.getElementById('viewClientDetail').addEventListener('click', () => { closeContextMenu(); openDrawer(contextClientIndex); });
+      prototypeWindow.addEventListener('click', event => { if (!contextMenu.contains(event.target)) closeContextMenu(); });
       document.getElementById('drawerClose').addEventListener('click', closeDrawer);
       backdrop.addEventListener('click', closeDrawer);
       document.addEventListener('keydown', event => { if (event.key === 'Escape') closeDrawer(); }, {once:true});
