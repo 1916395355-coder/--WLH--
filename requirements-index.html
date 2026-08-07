@@ -1,0 +1,375 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>需求工作台</title>
+  <style>
+    :root { --ui-scale:.9; --ink:#24312d; --muted:#71807a; --line:#e1e9e5; --surface:#ffffff; --canvas:#fafcfb; --sidebar:#edf3f0; --sidebar-strong:#dfeae5; --accent:#d98263; --focus:#377b66; }
+    * { box-sizing:border-box; }
+    body { margin:0; min-height:111.112vh; zoom:var(--ui-scale); background:var(--canvas); color:var(--ink); font-family:"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif; }
+    button { font:inherit; }
+    .shell { position:relative; display:grid; grid-template-columns:264px minmax(0,1fr); min-height:111.112vh; transition:grid-template-columns .36s cubic-bezier(.2,0,0,1); }
+    .shell.sidebar-collapsed { grid-template-columns:0 minmax(0,1fr); }
+    .sidebar { min-width:0; overflow:hidden; background:var(--sidebar); color:var(--ink); padding:28px 16px; display:flex; flex-direction:column; border-right:1px solid var(--line); opacity:1; transform:translateX(0); transition:opacity .22s ease,transform .36s cubic-bezier(.2,0,0,1),padding .36s cubic-bezier(.2,0,0,1),border-color .2s ease; }
+    .shell.sidebar-collapsed .sidebar { padding-inline:0; border-color:transparent; opacity:0; transform:translateX(-100%); pointer-events:none; }
+    .brand { display:flex; align-items:center; gap:12px; padding:0 10px 34px; }
+    .brand,.tree { width:232px; flex-shrink:0; }
+    .brand-mark { width:34px; height:34px; display:grid; place-items:center; border-radius:8px; background:var(--accent); color:#fff; font-weight:750; box-shadow:0 5px 14px rgba(217,130,99,.18); }
+    .brand-title { font-size:15px; font-weight:700; }
+    .tree { flex:1; }
+    .date-row { width:100%; min-height:44px; display:flex; align-items:center; gap:9px; padding:10px 12px; border:0; border-radius:8px; background:transparent; color:#66756f; font-size:12px; font-weight:650; text-align:left; cursor:pointer; transition:background .18s ease,color .18s ease; }
+    .date-row:hover { background:rgba(255,255,255,.56); color:var(--ink); }
+    .date-row:focus-visible { outline:2px solid var(--focus); outline-offset:2px; }
+    .date-row__icon { color:var(--accent); font-size:10px; transform:rotate(0); transition:transform .28s cubic-bezier(.2,0,0,1); }
+    .date-row[aria-expanded="false"] .date-row__icon { transform:rotate(-90deg); }
+    .req-list { display:grid; gap:5px; max-height:160px; margin-top:4px; overflow:hidden; opacity:1; transform:translateY(0); transition:max-height .3s cubic-bezier(.2,0,0,1),opacity .2s ease,transform .3s cubic-bezier(.2,0,0,1),margin .3s ease; }
+    .req-list.is-hidden { max-height:0; margin-top:0; opacity:0; transform:translateY(-6px); pointer-events:none; }
+    .req-btn { position:relative; width:100%; min-height:44px; border:0; border-radius:8px; padding:11px 14px 11px 32px; background:transparent; color:#53635d; text-align:left; cursor:pointer; transition:background .18s ease,color .18s ease,transform .18s ease; }
+    .req-btn::before { content:""; position:absolute; left:14px; top:50%; width:5px; height:5px; border-radius:50%; background:#a5b5ae; transform:translateY(-50%); }
+    .req-btn:hover { background:rgba(255,255,255,.72); color:var(--ink); transform:translateX(2px); }
+    .req-btn:active { transform:scale(.98); }
+    .req-btn:focus-visible { outline:2px solid var(--focus); outline-offset:2px; }
+    .req-btn.active { background:var(--surface); color:var(--ink); font-weight:700; box-shadow:0 4px 18px rgba(51,73,65,.07); }
+    .req-btn.active::before { background:var(--accent); }
+    .sidebar-toggle { position:fixed; z-index:10; top:50%; left:240px; width:36px; height:36px; display:grid; place-items:center; border:1px solid var(--line); border-radius:50%; background:rgba(255,255,255,.92); color:#5f7069; cursor:pointer; box-shadow:0 6px 20px rgba(51,73,65,.10); transform:translateY(-50%); transition:left .36s cubic-bezier(.2,0,0,1),background .18s ease,transform .18s ease; }
+    .sidebar-toggle:hover { background:#fff; transform:translateY(-50%) translateY(-1px); }
+    .sidebar-toggle:active { transform:translateY(-50%) scale(.94); }
+    .sidebar-toggle:focus-visible { outline:2px solid var(--focus); outline-offset:3px; }
+    .sidebar-toggle__icon { display:block; font-size:24px; line-height:1; transform:translateX(-1px) rotate(0); transition:transform .36s cubic-bezier(.2,0,0,1); }
+    .shell.sidebar-collapsed .sidebar-toggle { left:18px; }
+    .shell.sidebar-collapsed .sidebar-toggle__icon { transform:translateX(1px) rotate(180deg); }
+    .main { padding:clamp(28px,6vw,78px); background:var(--canvas); }
+    .content { max-width:1320px; margin:0 auto; }
+    .eyebrow { color:var(--muted); font-size:12px; font-weight:600; }
+    h1 { margin:16px 0 28px; font-size:clamp(30px,4vw,46px); line-height:1.16; font-weight:680; }
+    .rule { width:100%; height:1px; background:var(--line); transform-origin:left; animation:reveal .45s ease both; }
+    .content-view { animation:enter .28s ease both; }
+    .prototype-heading { display:flex; align-items:flex-end; justify-content:space-between; gap:24px; margin-bottom:28px; }
+    .prototype-heading h1 { margin:10px 0 0; font-size:32px; }
+    .prototype-path { display:none; }
+    .prd-document { max-width:920px; margin-bottom:44px; }
+    .prd-module { margin-bottom:30px; }
+    .prd-module:last-child { margin-bottom:0; }
+    .prd-module h2 { position:relative; margin:0 0 12px; padding-left:13px; color:#33453e; font-size:16px; font-weight:750; }
+    .prd-module h2::before { content:""; position:absolute; left:0; top:3px; bottom:3px; width:3px; border-radius:3px; background:var(--accent); }
+    .prd-module__content { padding-left:13px; color:#52615b; font-size:14px; line-height:1.85; }
+    .prd-module__content p { margin:0; }
+    .prd-module__content p + p { margin-top:8px; }
+    .prototype-section-title { margin:0 0 16px; color:#33453e; font-size:18px; font-weight:750; }
+    .migration-document { max-width:980px; padding-bottom:40px; }
+    .migration-lead { margin:18px 0 38px; color:#52615b; font-size:16px; line-height:1.85; }
+    .migration-section { margin:0 0 34px; }
+    .migration-section h2 { display:flex; align-items:center; gap:10px; margin:0 0 14px; color:#33453e; font-size:18px; }
+    .migration-section h2::before { content:""; width:4px; height:19px; border-radius:4px; background:var(--accent); }
+    .migration-section p { margin:0; color:#52615b; font-size:14px; line-height:1.9; }
+    .migration-section p + p { margin-top:9px; }
+    .fact-note { display:inline-flex; align-items:center; min-height:28px; margin-bottom:14px; padding:0 10px; border-radius:5px; background:#e9f5ef; color:#2f7559; font-size:12px; font-weight:700; }
+    .flowchart-scroll { overflow-x:auto; padding:4px 0 14px; scrollbar-color:#b8cbc1 transparent; }
+    .flowchart-board { position:relative; width:1760px; height:450px; border:1px solid #e0eae5; border-radius:8px; background:#fbfdfb; overflow:hidden; }
+    .flowchart-board::before { content:""; position:absolute; inset:0; background-image:radial-gradient(#dce8e1 1px, transparent 1px); background-size:16px 16px; opacity:.5; }
+    .flowchart-svg { position:absolute; inset:0; width:100%; height:100%; overflow:visible; }
+    .flowchart-svg path { fill:none; stroke:#80a393; stroke-width:1.7; stroke-linecap:round; stroke-linejoin:round; }
+    .flowchart-svg .flow-return { stroke:#d48a71; stroke-dasharray:5 5; }
+    .flowchart-svg text { fill:#7d9388; font-family:"Microsoft YaHei", sans-serif; font-size:11px; font-weight:700; }
+    .flow-node { position:absolute; z-index:1; width:154px; min-height:78px; display:flex; flex-direction:column; justify-content:center; padding:14px 14px 13px; box-sizing:border-box; border:1px solid #cfe0d7; border-radius:7px; background:#fff; color:#52615b; box-shadow:0 2px 8px rgba(38,75,58,.05); font-size:12px; line-height:1.55; text-align:center; }
+    .flow-node strong { display:block; color:#35473f; font-size:13px; line-height:1.45; }
+    .flow-node small { display:block; margin-top:5px; color:#70847a; font-size:11px; line-height:1.45; }
+    .flow-node.start, .flow-node.done { width:110px; min-height:48px; padding:11px 10px; border-radius:999px; background:#e9f5ef; border-color:#b9dac7; color:#2f7559; font-weight:750; }
+    .flow-node.decision { width:126px; min-height:126px; padding:22px 16px; border-radius:0; border-color:#e0c687; background:#fffaf0; clip-path:polygon(50% 0,100% 50%,50% 100%,0 50%); box-shadow:none; }
+    .flow-node.decision strong { font-size:12px; }
+    .flow-node.failure { width:180px; min-height:70px; border-color:#edc7b8; background:#fff8f5; color:#a7654c; }
+    .flow-node.failure strong { color:#9c5a43; }
+    .flow-node.failure small { color:#ad765f; }
+    .flow-node:hover { transform:translateY(-2px); box-shadow:0 5px 14px rgba(38,75,58,.10); transition:transform 180ms ease, box-shadow 180ms ease; }
+    .interaction-flow { position:relative; width:min(100%,975px); margin:0 auto; border:1px solid #dfe6e3; border-radius:8px; overflow:hidden; background:#fff; box-shadow:0 14px 36px rgba(43,63,56,.08); }
+    .interaction-flow img { display:block; width:100%; height:auto; }
+    .migration-entry-btn { position:absolute; left:38%; top:42%; min-height:34px; padding:0 14px; border:1px solid #3d86b4; border-radius:4px; background:#f9fdff; color:#23648c; font-size:13px; font-weight:700; cursor:pointer; box-shadow:0 2px 8px rgba(35,100,140,.16); }
+    .migration-entry-btn:hover { background:#eaf6fd; transform:translateY(-1px); }
+    .migration-entry-btn:active { transform:scale(.98); }
+    .migration-entry-btn:focus-visible { outline:2px solid #377b66; outline-offset:3px; }
+    .migration-modal-backdrop { position:fixed; inset:0; z-index:30; display:grid; place-items:center; padding:24px; background:rgba(29,46,39,.28); opacity:0; pointer-events:none; transition:opacity .2s ease; }
+    .migration-modal-backdrop.is-open { opacity:1; pointer-events:auto; }
+    .migration-modal { width:min(520px,100%); padding:24px; border:1px solid #dfe8e3; border-radius:10px; background:#fff; box-shadow:0 24px 70px rgba(27,48,39,.22); transform:translateY(8px) scale(.98); transition:transform .22s ease; }
+    .migration-modal-backdrop.is-open .migration-modal { transform:translateY(0) scale(1); }
+    .migration-modal__head { display:flex; align-items:center; justify-content:space-between; gap:16px; margin-bottom:20px; }
+    .migration-modal__head h3 { margin:0; color:#33453e; font-size:19px; }
+    .migration-modal__close { width:32px; height:32px; border:0; border-radius:50%; background:#f1f6f3; color:#63756d; cursor:pointer; font-size:19px; line-height:1; }
+    .migration-modal__close:hover { background:#e5eee9; }
+    .migration-modal__body { display:grid; gap:14px; }
+    .migration-modal__field { color:#52615b; font-size:13px; }
+    .migration-modal__field input, .migration-modal__field select { display:block; width:100%; height:42px; margin-top:7px; padding:0 12px; border:1px solid #dfe7e3; border-radius:6px; background:#f8fbf9; color:#405149; }
+    .migration-modal__action { width:max-content; min-height:40px; margin-top:4px; padding:0 18px; border:0; border-radius:6px; background:#377b66; color:#fff; font-weight:700; cursor:pointer; }
+    .migration-workbench { width:min(1160px,calc(100vw - 48px)); max-height:calc(100vh - 48px); padding:0; overflow:auto; }
+    .migration-workbench .migration-modal__head { position:sticky; z-index:4; top:0; margin:0; padding:18px 22px; border-bottom:1px solid #e3ebe7; background:rgba(255,255,255,.96); }
+    .migration-workbench__layout { position:relative; display:grid; grid-template-columns:minmax(0,760px) minmax(280px,1fr); min-height:650px; }
+    .migration-config-pane { padding:20px 22px 22px; border-right:1px solid #e4ebe8; background:#fff; }
+    .migration-dev-pane { position:relative; padding:20px 18px; background:#f7faf8; }
+    .migration-dev-pane h4 { margin:0 0 14px; color:#62736b; font-size:12px; }
+    .migration-summary { display:grid; grid-template-columns:1fr 1fr 1.15fr; border:1px solid #dfe8e3; border-radius:8px; overflow:hidden; }
+    .migration-metric { min-height:86px; padding:14px 16px; border-right:1px solid #e4ebe8; background:#fbfdfc; }
+    .migration-metric:last-child { border-right:0; background:#f0f7f3; }
+    .migration-metric span { display:block; color:#78877f; font-size:11px; }
+    .migration-metric strong { display:block; margin-top:6px; color:#33473f; font-size:19px; }
+    .migration-metric small { display:block; margin-top:4px; color:#7b8a83; font-size:10px; }
+    .migration-block-title { display:flex; align-items:center; justify-content:space-between; margin:20px 0 10px; }
+    .migration-block-title strong { color:#394a43; font-size:14px; }
+    .migration-block-title span { color:#7c8b84; font-size:11px; }
+    .disk-list { border:1px solid #dfe7e3; border-radius:8px; overflow:hidden; }
+    .disk-option { position:relative; display:grid; grid-template-columns:34px 78px minmax(150px,1fr) 190px 94px; align-items:center; min-height:72px; padding:0 14px; border:0; border-bottom:1px solid #e6ece9; background:#fff; color:#43534c; text-align:left; cursor:pointer; }
+    .disk-option:last-child { border-bottom:0; }
+    .disk-option:hover:not(:disabled) { background:#f7fbf9; }
+    .disk-option.is-selected { background:#eef7f2; box-shadow:inset 3px 0 #377b66; }
+    .disk-option:disabled { background:#f5f6f5; color:#98a39e; cursor:not-allowed; }
+    .disk-radio { width:16px; height:16px; border:1.5px solid #9cafA5; border-radius:50%; }
+    .is-selected .disk-radio { border:5px solid #377b66; }
+    .disk-name { font-size:17px; font-weight:750; }
+    .disk-meta strong { display:block; color:inherit; font-size:12px; }
+    .disk-meta small { color:#86938d; font-size:10px; }
+    .disk-space { padding-right:16px; }
+    .disk-space__label { display:flex; justify-content:space-between; margin-bottom:7px; color:#697871; font-size:10px; }
+    .disk-space__bar { height:5px; overflow:hidden; border-radius:5px; background:#e4ebe7; }
+    .disk-space__bar i { display:block; height:100%; border-radius:inherit; background:#64a58b; }
+    .disk-option:disabled .disk-space__bar i { background:#c7d0cc; }
+    .disk-status { justify-self:end; padding:4px 7px; border-radius:4px; background:#eaf5ef; color:#39745d; font-size:10px; font-weight:700; }
+    .disk-status.is-muted { background:#e9ecea; color:#7d8984; }
+    .disk-status.is-error { background:#f5e9e4; color:#a56249; }
+    .migration-selection { display:flex; align-items:center; justify-content:space-between; min-height:44px; margin-top:12px; padding:0 13px; border-radius:6px; background:#f6f9f7; color:#617169; font-size:11px; }
+    .migration-selection strong { color:#386d59; font-size:13px; }
+    .migration-actions { display:flex; justify-content:flex-end; gap:10px; margin-top:16px; }
+    .migration-secondary { min-height:40px; padding:0 16px; border:1px solid #d7e1dc; border-radius:6px; background:#fff; color:#5d6e66; cursor:pointer; }
+    .migration-workbench .migration-modal__action { min-width:104px; margin:0; }
+    .dev-callout { position:relative; z-index:2; min-height:72px; margin-bottom:12px; padding:11px 12px 11px 42px; border:1px solid #dfe7e3; border-radius:7px; background:#fff; color:#65756e; font-size:11px; line-height:1.55; }
+    .dev-callout b { display:block; margin-bottom:3px; color:#3f5149; font-size:12px; }
+    .dev-callout__number, .dev-pin { display:grid; place-items:center; border-radius:50%; background:#d98263; color:#fff; font-size:10px; font-weight:750; }
+    .dev-callout__number { position:absolute; left:12px; top:12px; width:20px; height:20px; }
+    .dev-pin { position:absolute; z-index:3; width:20px; height:20px; box-shadow:0 0 0 3px #fff; }
+    .migration-annotation-lines { position:absolute; z-index:1; inset:0; width:100%; height:100%; pointer-events:none; }
+    .migration-annotation-lines path { fill:none; stroke:#d9a48f; stroke-width:1.2; stroke-dasharray:3 3; }
+    .migration-progress-view { padding:22px; }
+    .task-overview { display:flex; align-items:flex-start; justify-content:space-between; gap:24px; margin-bottom:20px; }
+    .task-overview h4 { margin:0 0 6px; color:#33473f; font-size:17px; }
+    .task-overview p { margin:0; color:#718079; font-size:12px; }
+    .task-progress-number { color:#377b66; font-size:24px; font-weight:750; }
+    .task-progress-bar { height:8px; margin-bottom:22px; overflow:hidden; border-radius:8px; background:#e5ece8; }
+    .task-progress-bar i { display:block; width:56%; height:100%; border-radius:inherit; background:#4e9277; }
+    .task-steps { display:grid; gap:0; }
+    .task-step { position:relative; min-height:52px; padding:3px 0 12px 36px; color:#7a8881; font-size:11px; }
+    .task-step::before { content:""; position:absolute; left:8px; top:5px; width:14px; height:14px; border:2px solid #c6d2cc; border-radius:50%; background:#fff; }
+    .task-step::after { content:""; position:absolute; left:15px; top:22px; bottom:0; width:1px; background:#dce5e0; }
+    .task-step:last-child::after { display:none; }
+    .task-step.done::before { border-color:#4f9277; background:#4f9277; }
+    .task-step.active { color:#3c5047; }
+    .task-step.active::before { border:4px solid #4f9277; }
+    .task-step b { display:block; margin-bottom:3px; color:inherit; font-size:12px; }
+    .editor-toggle { position:fixed; z-index:12; top:24px; right:28px; min-height:36px; padding:0 14px; border:1px solid #cfe0d7; border-radius:6px; background:#fff; color:#356a57; font-size:12px; font-weight:700; cursor:pointer; box-shadow:0 5px 16px rgba(38,75,58,.08); }
+    .editor-toggle:hover { background:#f0f7f3; }
+    .editor-toggle.is-editing { border-color:#d98263; background:#fff8f5; color:#a45e47; }
+    .text-editable[contenteditable="true"] { outline:1px dashed #d98263; outline-offset:3px; cursor:text; }
+    .note-section { margin-top:42px; padding-top:24px; border-top:1px solid var(--line); }
+    .note-section h2 { display:flex; align-items:center; gap:10px; margin:0 0 12px; color:#33453e; font-size:18px; }
+    .note-section h2::before { content:""; width:4px; height:19px; border-radius:4px; background:var(--accent); }
+    .note-field { display:block; width:100%; min-height:120px; resize:vertical; padding:14px 16px; border:1px solid #dfe7e3; border-radius:8px; background:#fff; color:#52615b; font:14px/1.8 inherit; }
+    .note-field[readonly] { background:#f7faf8; color:#71807a; }
+    .note-field:not([readonly]):focus { border-color:#5d927f; outline:3px solid rgba(93,146,127,.12); }
+    .rule-list { display:grid; gap:10px; margin:0; padding:0; list-style:none; }
+    .rule-list li { position:relative; padding-left:18px; color:#52615b; font-size:14px; line-height:1.75; }
+    .rule-list li::before { content:""; position:absolute; left:0; top:9px; width:6px; height:6px; border-radius:50%; background:#d98263; }
+    .prototype-window { position:relative; min-height:760px; overflow:hidden; border:1px solid #dfe6e3; border-radius:8px; background:#f7faf9; box-shadow:0 18px 48px rgba(43,63,56,.10); }
+    .prototype-window--image { min-height:0; aspect-ratio:1884/956; background:#fff url("assets/client-assets-list.png") center/100% 100% no-repeat; }
+    .legacy-hotspot { position:absolute; left:9.9%; right:.4%; height:3.35%; z-index:1; padding:0; border:0; background:transparent; cursor:default; transition:background .16s ease,box-shadow .16s ease; }
+    .legacy-hotspot:hover { background:rgba(73,166,232,.12); box-shadow:inset 0 1px rgba(73,166,232,.28),inset 0 -1px rgba(73,166,232,.28); }
+    .legacy-hotspot:focus-visible { outline:2px solid #2e97df; outline-offset:-2px; background:rgba(73,166,232,.14); }
+    .legacy-hotspot.selected { background:rgba(73,166,232,.16); }
+    .prototype-window--image .drawer-backdrop { inset:0; }
+    .prototype-window--image .hardware-drawer { top:50%; right:50%; bottom:auto; width:min(600px,calc(100% - 48px)); height:min(720px,calc(100% - 48px)); border:1px solid #dfe6e2; border-radius:10px; box-shadow:0 24px 70px rgba(24,43,35,.24); transform:translate(50%,-46%) scale(.96); opacity:0; transition:transform .28s cubic-bezier(.2,0,0,1),opacity .22s ease; }
+    .prototype-window--image .hardware-drawer.is-open { transform:translate(50%,-50%) scale(1); opacity:1; }
+    .app-bar { height:60px; display:flex; align-items:center; justify-content:space-between; padding:0 22px; border-bottom:1px solid #e3e9e6; background:#fff; }
+    .app-title { display:flex; align-items:center; gap:12px; font-size:15px; font-weight:700; }
+    .app-title__mark { width:30px; height:30px; display:grid; place-items:center; border-radius:7px; background:#427c69; color:#fff; font-size:13px; }
+    .app-context { color:#84908b; font-size:12px; font-weight:500; }
+    .app-user { display:flex; align-items:center; gap:9px; color:#61706a; font-size:12px; }
+    .app-user::before { content:""; width:8px; height:8px; border-radius:50%; background:#55a77d; box-shadow:0 0 0 4px #e9f6ef; }
+    .asset-layout { display:grid; grid-template-columns:188px minmax(0,1fr); min-height:700px; }
+    .asset-nav { padding:20px 14px; border-right:1px solid #e3e9e6; background:#f1f6f4; }
+    .asset-nav__label { padding:0 10px 12px; color:#8a9691; font-size:11px; font-weight:700; }
+    .asset-nav__item { min-height:42px; display:flex; align-items:center; gap:10px; padding:0 12px; border-radius:7px; color:#596861; font-size:13px; }
+    .asset-nav__item::before { content:""; width:6px; height:6px; border:1.5px solid #8aa298; border-radius:2px; }
+    .asset-nav__item.active { background:#fff; color:#2f5f50; font-weight:700; box-shadow:0 3px 12px rgba(45,75,65,.06); }
+    .asset-nav__item.active::before { border-color:#d98263; background:#d98263; }
+    .asset-main { min-width:0; padding:24px; }
+    .asset-toolbar { display:flex; align-items:center; justify-content:space-between; gap:16px; margin-bottom:18px; }
+    .asset-toolbar h2 { margin:0; font-size:20px; }
+    .asset-count { margin-left:8px; color:#8a9691; font-size:12px; font-weight:500; }
+    .search { width:220px; height:38px; padding:0 13px; border:1px solid #dde5e1; border-radius:7px; background:#fff; color:#53635d; outline:none; }
+    .search:focus { border-color:#5d927f; box-shadow:0 0 0 3px rgba(93,146,127,.12); }
+    .asset-table-shell { overflow:hidden; border:1px solid #e1e7e4; border-radius:8px; background:#fff; }
+    .asset-table { width:100%; border-collapse:collapse; table-layout:fixed; }
+    .asset-table th { height:42px; padding:0 16px; border-bottom:1px solid #e5ebe8; background:#f8faf9; color:#76827d; font-size:11px; font-weight:700; text-align:left; }
+    .asset-table td { height:52px; padding:0 16px; border-bottom:1px solid #edf1ef; color:#415049; font-size:12px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .asset-table tr:last-child td { border-bottom:0; }
+    .asset-table tbody tr { cursor:default; transition:background .16s ease; }
+    .asset-table tbody tr:hover { background:#f5f9f7; }
+    .asset-table tbody tr.selected { background:#edf6f2; }
+    .asset-table tbody tr:focus-visible { outline:2px solid var(--focus); outline-offset:-2px; }
+    .device-name { color:#285f4c; font-weight:700; }
+    .online { display:inline-flex; align-items:center; gap:7px; color:#3b775f; }
+    .online::before { content:""; width:6px; height:6px; border-radius:50%; background:#50a579; }
+    .drawer-backdrop { position:absolute; inset:60px 0 0; z-index:2; background:rgba(35,49,44,.16); opacity:0; pointer-events:none; transition:opacity .25s ease; }
+    .drawer-backdrop.is-open { opacity:1; pointer-events:auto; }
+    .hardware-drawer { position:absolute; z-index:3; top:60px; right:0; bottom:0; width:min(530px,58%); display:flex; flex-direction:column; background:#fff; border-left:1px solid #dfe6e2; box-shadow:-18px 0 44px rgba(33,51,44,.14); transform:translateX(102%); transition:transform .34s cubic-bezier(.2,0,0,1); }
+    .hardware-drawer.is-open { transform:translateX(0); }
+    .drawer-head { flex-shrink:0; display:flex; align-items:flex-start; justify-content:space-between; gap:20px; padding:26px 28px 22px; border-bottom:1px solid #e7ece9; }
+    .drawer-kicker { margin-bottom:7px; color:#8a9691; font-size:11px; font-weight:700; }
+    .drawer-title { margin:0; font-size:24px; line-height:1.25; }
+    .drawer-group { display:inline-flex; margin-top:10px; padding:5px 9px; border-radius:5px; background:#edf5f2; color:#3e715f; font-size:11px; font-weight:650; }
+    .icon-button { width:38px; height:38px; flex-shrink:0; display:grid; place-items:center; border:0; border-radius:50%; background:#f3f6f5; color:#67756f; cursor:pointer; font-size:22px; line-height:1; transition:background .18s ease,transform .18s ease; }
+    .icon-button:hover { background:#e9efec; }
+    .icon-button:active { transform:scale(.94); }
+    .icon-button:focus-visible { outline:2px solid var(--focus); outline-offset:2px; }
+    .drawer-body { overflow:auto; padding:4px 28px 34px; }
+    .hardware-section { padding:23px 0 18px; border-bottom:1px solid #edf1ef; }
+    .hardware-section:last-child { border-bottom:0; }
+    .hardware-section h3 { margin:0 0 9px; color:#2c3d36; font-size:13px; font-weight:750; }
+    .spec-list { margin:0; }
+    .spec-row { display:grid; grid-template-columns:148px minmax(0,1fr); gap:18px; padding:10px 0; }
+    .spec-row dt { color:#89958f; font-size:12px; }
+    .spec-row dd { margin:0; color:#34443d; font-size:12px; font-weight:600; line-height:1.5; overflow-wrap:anywhere; }
+    .state-on { display:inline-flex; align-items:center; gap:7px; color:#33745b; }
+    .state-on::before { content:""; width:7px; height:7px; border-radius:50%; background:#50a579; }
+    .empty-view h1 { margin-bottom:28px; }
+    @keyframes enter { from { opacity:0; transform:translateY(6px); } to { opacity:1; transform:translateY(0); } }
+    @keyframes reveal { from { transform:scaleX(0); } to { transform:scaleX(1); } }
+    @media (max-width:760px) { body { min-height:100vh; zoom:1; } .shell { grid-template-columns:220px minmax(0,1fr); min-height:100vh; } .shell.sidebar-collapsed { grid-template-columns:0 minmax(0,1fr); } .sidebar { min-height:100vh; padding:18px 14px; } .brand,.tree { width:192px; } .brand { padding-bottom:16px; } .sidebar-toggle { left:202px; } .shell.sidebar-collapsed .sidebar-toggle { left:12px; } .main { padding:72px 20px 44px; } .prototype-heading { align-items:flex-start; flex-direction:column; } .asset-layout { grid-template-columns:1fr; } .asset-nav { display:none; } .asset-main { padding:16px; } .search { width:160px; } .hardware-drawer { width:100%; } .spec-row { grid-template-columns:118px minmax(0,1fr); } }
+    @media (prefers-reduced-motion:reduce) { .shell,.sidebar,.sidebar-toggle,.sidebar-toggle__icon { transition:none; } }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <aside class="sidebar" aria-label="需求目录">
+      <div class="brand"><div class="brand-mark">R</div><div class="brand-title">需求工作台</div></div>
+      <nav class="tree">
+        <button class="date-row" id="dateToggle" type="button" aria-expanded="true" aria-controls="reqList"><span class="date-row__icon" aria-hidden="true">▾</span><span id="todayLabel">2026/8/6</span></button>
+        <div class="req-list" id="reqList"></div>
+      </nav>
+    </aside>
+    <button class="sidebar-toggle" id="sidebarToggle" type="button" aria-label="隐藏需求目录" aria-expanded="true"><span class="sidebar-toggle__icon" aria-hidden="true">‹</span></button>
+    <main class="main"><button class="editor-toggle" id="editorToggle" type="button">开启编辑模式</button><div class="content" id="content"></div></main>
+  </div>
+  <script>
+    const now = new Date();
+    const padDate = `${now.getFullYear()}/${now.getMonth()+1}/${now.getDate()}`;
+    document.getElementById('todayLabel').textContent = padDate;
+    const requirements = [{ id:'req-1', title:'需求 1 · 客户机硬件详细查看功能' }, { id:'req-2', title:'需求 2 · 迁徙资源库' }];
+    const list = document.getElementById('reqList');
+    const content = document.getElementById('content');
+    const shell = document.querySelector('.shell');
+    const sidebarToggle = document.getElementById('sidebarToggle');
+    const dateToggle = document.getElementById('dateToggle');
+    const editorToggle = document.getElementById('editorToggle');
+    const clients = [
+      {name:'FLQ',group:'默认分组',board:'B450M MORTAR MAX',cpu:'AMD Ryzen 5 2600X',gpu:'NVIDIA GeForce RTX 3060',network:'Realtek PCIe GbE',disk:'161 GB',memory:'8,192 MB',frequency:'2,667 MHz',monitor:'AOC',resolution:'2560 × 1440 / 75 Hz',mouse:'罗技 G502',keyboard:'罗技 G610',bios:'7B89v2I / 2024-03-18',mode:'UEFI',vt:'已开启',camera:'未检测到'},
+      {name:'LJ72',group:'默认分组',board:'Z170I PRO GAMING',cpu:'Intel Core i7-6700',gpu:'NVIDIA GeForce GTX 1060',network:'Intel Ethernet',disk:'64 GB',memory:'8,192 MB',frequency:'2,133 MHz',monitor:'AOC',resolution:'1920 × 1080 / 60 Hz',mouse:'罗技',keyboard:'雷柏',bios:'2205 / 2023-08-11',mode:'UEFI',vt:'已开启',camera:'未检测到'},
+      {name:'YJH01',group:'默认分组',board:'B560M GAMING',cpu:'11th Gen Intel Core i5',gpu:'NVIDIA GeForce RTX 3060',network:'Realtek PCIe GbE',disk:'107 GB + 256 GB',memory:'16,384 MB',frequency:'2,666 MHz',monitor:'AOC',resolution:'2560 × 1440 / 180 Hz',mouse:'雷蛇',keyboard:'雷蛇',bios:'F6 / 2024-06-02',mode:'UEFI',vt:'已开启',camera:'已连接'},
+      {name:'YJH02',group:'默认分组',board:'B365 M AORUS',cpu:'Intel Core i5-9400F',gpu:'AMD Radeon RX 9060',network:'Intel Ethernet',disk:'161 GB',memory:'8,192 MB',frequency:'2,400 MHz',monitor:'AOC',resolution:'2560 × 1440 / 144 Hz',mouse:'罗技',keyboard:'罗技',bios:'F4 / 2023-12-17',mode:'UEFI',vt:'已开启',camera:'未检测到'},
+      {name:'YJH03',group:'默认分组',board:'TUF B360M-PLUS',cpu:'Intel Core i5-8500',gpu:'NVIDIA GeForce RTX 2060',network:'Intel Ethernet',disk:'161 GB',memory:'8,192 MB',frequency:'2,666 MHz',monitor:'OST',resolution:'2560 × 1440 / 59 Hz',mouse:'双飞燕',keyboard:'双飞燕',bios:'1402 / 2023-09-06',mode:'UEFI',vt:'已开启',camera:'已连接'},
+      {name:'ZHH',group:'邹海华',board:'B460M AORUS',cpu:'Intel Core i5-10400',gpu:'NVIDIA GeForce RTX 2060',network:'Intel Ethernet',disk:'214 GB + 250 GB',memory:'16,384 MB',frequency:'2,400 MHz',monitor:'OST',resolution:'2560 × 1440 / 75 Hz',mouse:'微软',keyboard:'微软',bios:'F5 / 2023-11-24',mode:'UEFI',vt:'已开启',camera:'已连接'}
+    ];
+    const detailRows = rows => rows.map(([label,value]) => `<div class="spec-row"><dt>${label}</dt><dd>${value}</dd></div>`).join('');
+    const detailMarkup = client => `
+      <section class="hardware-section"><h3>核心硬件</h3><dl class="spec-list">${detailRows([
+        ['主板',client.board],['CPU',client.cpu],['显卡',client.gpu],['网卡',client.network]
+      ])}</dl></section>
+      <section class="hardware-section"><h3>存储与内存</h3><dl class="spec-list">${detailRows([
+        ['硬盘',client.disk],['内存',client.memory],['内存频率',client.frequency]
+      ])}</dl></section>
+      <section class="hardware-section"><h3>显示与外设</h3><dl class="spec-list">${detailRows([
+        ['显示器品牌',client.monitor],['显示器分辨率 / 刷新率',client.resolution],['鼠标品牌',client.mouse],['键盘品牌',client.keyboard],['摄像头',client.camera]
+      ])}</dl></section>
+      <section class="hardware-section"><h3>系统与虚拟化</h3><dl class="spec-list">${detailRows([
+        ['BIOS 版本 / 日期',client.bios],['BIOS 模式',client.mode],['VT 虚拟化','<span class="state-on">'+client.vt+'</span>']
+      ])}</dl></section>`;
+    const prdMarkup = `<section class="prd-document" aria-label="需求文档">
+      <div class="prd-module"><h2>需求背景</h2><div class="prd-module__content"><p>当前客户机资产列表字段过多，导致长列表横向滚动频繁。网管在排查单机硬件问题时，定位信息效率低，且看串行容易误判。</p></div></div>
+      <div class="prd-module"><h2>设计目标</h2><div class="prd-module__content"><p>通过双击打开详情面板，把单台客户机的硬件配置汇总展示。</p></div></div>
+      <div class="prd-module"><h2>功能详述</h2><div class="prd-module__content"><p>路径：客户机管理→客户机资产列表</p><p>功能1：查看客户机硬件详情</p><p>双击列表中的单条数据，即可打开硬件详情</p></div></div>
+    </section><h2 class="prototype-section-title">硬件详情</h2>`;
+    const legacyMarkup = client => `<div class="legacy-hotspots">${['28.05%','31.35%','34.65%','37.95%','41.25%','44.55%'].map((top,index) => `<button class="legacy-hotspot" style="top:${top}" type="button" data-client="${index}" aria-label="查看 ${clients[index].name} 硬件详情"></button>`).join('')}</div><div class="drawer-backdrop" id="drawerBackdrop"></div><aside class="hardware-drawer" id="hardwareDrawer" aria-label="客户机硬件详情"><div class="drawer-head"><div><div class="drawer-kicker">客户机硬件详情</div><h2 class="drawer-title" id="drawerTitle">${client.name}</h2><span class="drawer-group" id="drawerGroup">${client.group}</span></div><button class="icon-button" id="drawerClose" type="button" aria-label="关闭详情">×</button></div><div class="drawer-body" id="drawerBody">${detailMarkup(client)}</div></aside>`;
+    function renderHardwarePrototype() {
+      const first = clients[0];
+      content.innerHTML = `<div class="content-view"><div class="prototype-heading"><div><div class="eyebrow">${padDate} / 需求 1</div><h1>客户机硬件详细查看功能</h1></div><div class="prototype-path">客户机管理  /  客户机资产列表</div></div><div class="prototype-window"><div class="app-bar"><div class="app-title"><span class="app-title__mark">机</span><span>客户机资产列表</span><span class="app-context">共 3 台</span></div><span class="app-user">系统正常</span></div><div class="asset-layout"><aside class="asset-nav"><div class="asset-nav__label">客户机管理</div><div class="asset-nav__item">客户机分组</div><div class="asset-nav__item active">客户机资产</div><div class="asset-nav__item">资产变更记录</div></aside><section class="asset-main"><div class="asset-toolbar"><h2>客户机资产<span class="asset-count">3 台</span></h2><input class="search" aria-label="搜索客户机" placeholder="搜索客户机名称"></div><div class="asset-table-shell"><table class="asset-table"><thead><tr><th style="width:18%">客户机名称</th><th style="width:16%">所在分组</th><th style="width:24%">主板</th><th style="width:23%">CPU</th><th style="width:19%">运行状态</th></tr></thead><tbody>${clients.map((client,index) => `<tr tabindex="0" class="${index===0?'selected':''}" data-client="${index}"><td class="device-name">${client.name}</td><td>${client.group}</td><td title="${client.board}">${client.board}</td><td title="${client.cpu}">${client.cpu}</td><td><span class="online">在线</span></td></tr>`).join('')}</tbody></table></div></section></div><div class="drawer-backdrop is-open" id="drawerBackdrop"></div><aside class="hardware-drawer is-open" id="hardwareDrawer" aria-label="客户机硬件详情"><div class="drawer-head"><div><div class="drawer-kicker">客户机硬件详情</div><h2 class="drawer-title" id="drawerTitle">${first.name}</h2><span class="drawer-group" id="drawerGroup">${first.group}</span></div><button class="icon-button" id="drawerClose" type="button" aria-label="关闭详情">×</button></div><div class="drawer-body" id="drawerBody">${detailMarkup(first)}</div></aside></div></div>`;
+      content.querySelector('.prototype-path')?.remove();
+      content.querySelector('.prototype-heading').insertAdjacentHTML('afterend', prdMarkup);
+      const prototypeWindow = content.querySelector('.prototype-window');
+      prototypeWindow.classList.add('prototype-window--image');
+      prototypeWindow.innerHTML = legacyMarkup(first);
+      prototypeWindow.innerHTML = prototypeWindow.innerHTML.replaceAll('客户机硬件详情', '客户机详情').replaceAll('硬件详情', '客户机详情');
+      content.querySelector('.prototype-section-title').textContent = '客户机详情';
+      content.querySelectorAll('.prd-module__content p').forEach(paragraph => { if (paragraph.textContent.trim().startsWith('功能1：')) paragraph.remove(); });
+      Array.from(content.querySelectorAll('.prd-module__content p')).find(paragraph => paragraph.textContent.trim() === '双击列表中的单条数据，即可打开硬件详情')?.insertAdjacentHTML('afterend', '<p>显示字段与列表字段相同</p>');
+      const drawer = document.getElementById('hardwareDrawer');
+      drawer.setAttribute('role', 'dialog');
+      drawer.setAttribute('aria-modal', 'true');
+      const backdrop = document.getElementById('drawerBackdrop');
+      const closeDrawer = () => { drawer.classList.remove('is-open'); backdrop.classList.remove('is-open'); };
+      const openDrawer = index => { const client = clients[index]; document.getElementById('drawerTitle').textContent = client.name; document.getElementById('drawerGroup').textContent = client.group; document.getElementById('drawerBody').innerHTML = detailMarkup(client); drawer.classList.add('is-open'); backdrop.classList.add('is-open'); document.querySelectorAll('.legacy-hotspot').forEach(row => row.classList.toggle('selected', row.dataset.client === String(index))); };
+      document.querySelectorAll('.legacy-hotspot').forEach(row => { row.addEventListener('dblclick', () => openDrawer(row.dataset.client)); row.addEventListener('keydown', event => { if (event.key === 'Enter') openDrawer(row.dataset.client); }); });
+      document.getElementById('drawerClose').addEventListener('click', closeDrawer);
+      backdrop.addEventListener('click', closeDrawer);
+      document.addEventListener('keydown', event => { if (event.key === 'Escape') closeDrawer(); }, {once:true});
+    }
+    function renderMigrationRequirement() {
+      content.innerHTML = `<article class="content-view migration-document"><div class="eyebrow">${padDate} / 需求 2</div><h1>迁徙资源库</h1><p class="migration-lead">通过可视化界面将“系统更新”资源库迁移到指定盘符，降低机械盘在系统更新阶段的读写压力。</p><section class="migration-section"><h2>需求背景</h2><p>网吧服务器同时使用固态盘和大容量机械盘。系统更新资源库落在机械盘时，系统更新下载会拉高机械盘压力，开机资源可能长时间无法刷出。</p><p>当前可通过设置下载盘、删除原文件后触发重新下载处理，但操作步骤多，且会造成重复下载。用户希望提供一键操作。</p></section><section class="migration-section"><h2>设计目标</h2><p>管理员选择目标盘后，系统在后台完成资源库复制、校验、路径切换和旧文件清理。用户不需要停留在页面等待，BS 不重启。</p></section><section class="migration-section"><h2>操作入口</h2><p>按钮名称：迁徙资源库</p><p>操作对象：系统更新文件夹</p><p>目标目录：目标盘符下的系统更新文件夹</p></section><section class="migration-section"><h2>后台任务路线图</h2><div class="flowchart-scroll" aria-label="迁徙资源库后台任务路线图"><div class="flowchart-board"><svg class="flowchart-svg" viewBox="0 0 1760 450" aria-hidden="true"><defs><marker id="flow-arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#80a393"></path></marker><marker id="return-arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#d48a71"></path></marker></defs><path marker-end="url(#flow-arrow)" d="M120 132 H160"></path><path marker-end="url(#flow-arrow)" d="M314 132 H354"></path><path marker-end="url(#flow-arrow)" d="M514 132 H554"></path><path marker-end="url(#flow-arrow)" d="M708 132 H748"></path><path marker-end="url(#flow-arrow)" d="M902 132 H942"></path><path marker-end="url(#flow-arrow)" d="M1096 132 H1136"></path><path marker-end="url(#flow-arrow)" d="M1290 132 H1330"></path><path marker-end="url(#flow-arrow)" d="M1484 132 H1524"></path><path marker-end="url(#flow-arrow)" d="M1284 132 H1330"></path><path marker-end="url(#flow-arrow)" d="M1484 132 H1524"></path><path class="flow-return" marker-end="url(#return-arrow)" d="M434 195 V286 H310 V330"></path><path class="flow-return" marker-end="url(#return-arrow)" d="M1019 195 V286 H733 V330"></path><path class="flow-return" marker-end="url(#return-arrow)" d="M1213 195 V286 H1150 V330"></path><path class="flow-return" marker-end="url(#return-arrow)" d="M220 400 V426 H237 V208"></path><path class="flow-return" marker-end="url(#return-arrow)" d="M643 400 V426 H237 V208"></path><path class="flow-return" marker-end="url(#return-arrow)" d="M1060 400 V426 H237 V208"></path><text x="466" y="278">不通过</text><text x="1045" y="278">失败</text><text x="1234" y="278">失败</text><text x="1267" y="121">通过</text></svg><div class="flow-node start" style="left:10px;top:108px">发起迁徙资源库</div><div class="flow-node" style="left:160px;top:93px"><strong>选择目标盘</strong><small>指定系统更新文件夹</small></div><div class="flow-node decision" style="left:354px;top:69px"><strong>检查目标盘</strong><small>在线、可写、空间充足</small></div><div class="flow-node" style="left:554px;top:93px"><strong>首次复制</strong><small>新下载仍写入原目录</small></div><div class="flow-node" style="left:748px;top:93px"><strong>暂停新下载</strong><small>等待当前写入完成</small></div><div class="flow-node decision" style="left:942px;top:69px"><strong>补复制并校验</strong><small>数量、大小、完整性</small></div><div class="flow-node decision" style="left:1136px;top:69px"><strong>动态切换路径</strong><small>读取新目录验证</small></div><div class="flow-node" style="left:1330px;top:93px"><strong>恢复下载</strong><small>原目录暂时保留</small></div><div class="flow-node done" style="left:1524px;top:108px">迁徙完成</div><div class="flow-node failure" style="left:220px;top:330px"><strong>目标盘不可用或空间不足</strong><small>不启动迁徙任务</small></div><div class="flow-node failure" style="left:643px;top:330px"><strong>校验失败</strong><small>继续使用原目录并恢复下载</small></div><div class="flow-node failure" style="left:1060px;top:330px"><strong>切换失败</strong><small>立即恢复原路径</small></div></div></div></section><section class="migration-section"><h2>任务状态</h2><p>待开始、检查中、复制中、等待下载完成、补复制中、校验中、切换中、已完成、失败。</p><p>用户关闭页面后任务继续执行；再次打开页面时，可查看当前阶段、进度、目标路径和失败原因。</p></section><section class="migration-section"><h2>风险与规则</h2><ul class="rule-list"><li>目标盘空间不足、不可写或与原盘相同时，不允许启动任务。</li><li>任务进行中禁止再次发起迁徙资源库，避免两个任务同时操作同一文件夹。</li><li>首次复制期间的新下载必须在补复制阶段纳入校验，不能直接遗漏。</li><li>校验失败时不切换路径，继续使用原目录并恢复下载。</li><li>切换后读取新目录失败时，立即恢复原路径；旧目录未确认稳定前不得删除。</li></ul></section><section class="migration-section"><h2>验收标准</h2><ul class="rule-list"><li>迁移期间不需要重启 BS。</li><li>用户离开页面后任务继续执行，并可回看进度和结果。</li><li>迁移完成后新的系统更新文件写入目标盘。</li><li>迁移失败时原资源库仍可正常使用。</li></ul></section></article>`;
+      content.querySelector('.flowchart-scroll').innerHTML = `<div class="flowchart-board" style="width:1240px;height:222px"><svg class="flowchart-svg" viewBox="0 0 1240 222" aria-hidden="true"><defs><marker id="flow-arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M 0 0 L 10 5 L 0 10 z" fill="#80a393"></path></marker></defs><path marker-end="url(#flow-arrow)" d="M190 110 H212"></path><path marker-end="url(#flow-arrow)" d="M390 110 H412"></path><path marker-end="url(#flow-arrow)" d="M590 110 H612"></path><path marker-end="url(#flow-arrow)" d="M790 110 H812"></path><path marker-end="url(#flow-arrow)" d="M990 110 H1012"></path></svg><div class="flow-node" style="left:24px;top:54px;width:166px;min-height:112px"><strong>选择并检查目标盘</strong><small>检查目标盘在线、可写、不是原盘，并确认可用空间满足资源库大小和临时复制空间。</small></div><div class="flow-node" style="left:224px;top:54px;width:166px;min-height:112px"><strong>首次复制</strong><small>后台复制原系统更新文件夹。此阶段 BS 正常运行，新下载仍写入原目录。</small></div><div class="flow-node" style="left:424px;top:54px;width:166px;min-height:112px"><strong>短暂停止新的系统更新下载</strong><small>首次复制完成后，新的系统更新下载任务进入等待；已开始写入的任务继续完成，不重启 BS。</small></div><div class="flow-node" style="left:624px;top:54px;width:166px;min-height:112px"><strong>补复制与校验</strong><small>补复制迁移期间新增或变化的文件，再校验文件数量、大小和完整性。</small></div><div class="flow-node" style="left:824px;top:54px;width:166px;min-height:112px"><strong>动态切换资源库路径</strong><small>校验通过后，将资源库路径更新为目标目录，并验证 BS 可以读取新目录。</small></div><div class="flow-node" style="left:1024px;top:54px;width:192px;min-height:112px"><strong>恢复下载与清理旧文件</strong><small>恢复系统更新下载。原目录暂时保留，确认稳定后再清理以释放机械盘空间。</small></div></div>`;
+      content.querySelector('.flowchart-scroll').innerHTML = `<div class="flowchart-board" style="width:3210px;height:560px"><svg class="flowchart-svg" viewBox="0 0 3210 560" aria-hidden="true"><defs><marker id="flow-arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M 0 0 L 10 5 L 0 10 z" fill="#80a393"></path></marker></defs><path marker-end="url(#flow-arrow)" d="M174 216H208"></path><path marker-end="url(#flow-arrow)" d="M364 216H394"></path><path marker-end="url(#flow-arrow)" d="M544 216H588"></path><path marker-end="url(#flow-arrow)" d="M764 216H788"></path><path marker-end="url(#flow-arrow)" d="M964 216H988"></path><path marker-end="url(#flow-arrow)" d="M1164 216H1188"></path><path marker-end="url(#flow-arrow)" d="M1364 216H1388"></path><path marker-end="url(#flow-arrow)" d="M1564 216H1588"></path><path marker-end="url(#flow-arrow)" d="M1738 216H1788"></path><path marker-end="url(#flow-arrow)" d="M1964 216H1988"></path><path marker-end="url(#flow-arrow)" d="M2138 216H2188"></path><path marker-end="url(#flow-arrow)" d="M2364 216H2388"></path><path marker-end="url(#flow-arrow)" d="M2538 216H2588"></path><path marker-end="url(#flow-arrow)" d="M2764 216H2788"></path><path marker-end="url(#flow-arrow)" d="M2964 216H2988"></path><path marker-end="url(#flow-arrow)" d="M469 291V382"></path><path marker-end="url(#flow-arrow)" d="M1663 291V330H1476V291"></path><path marker-end="url(#flow-arrow)" d="M2063 291V382"></path><path marker-end="url(#flow-arrow)" d="M2463 291V382"></path><text x="480" y="338">否</text><text x="554" y="205">是</text><text x="1674" y="322">否</text><text x="1748" y="205">是</text><text x="2074" y="338">失败</text><text x="2145" y="205">通过</text><text x="2474" y="338">否</text><text x="2545" y="205">通过</text></svg><div class="flow-node start" style="left:24px;top:192px;width:150px">管理员点击 迁移系统更新资源库</div><div class="flow-node" style="left:208px;top:174px;width:156px;min-height:84px"><strong>选择目标盘</strong></div><div class="flow-node decision" style="left:394px;top:141px"><strong>检查通过？</strong><small>目标盘可写、空间足够、不是原盘</small></div><div class="flow-node" style="left:588px;top:174px;width:176px;min-height:84px"><strong>确认迁移</strong></div><div class="flow-node" style="left:788px;top:174px;width:176px;min-height:84px"><strong>后台复制原 系统更新 文件夹</strong></div><div class="flow-node" style="left:988px;top:174px;width:176px;min-height:84px"><strong>BS 继续运行</strong><small>新下载仍写入原目录</small></div><div class="flow-node" style="left:1188px;top:174px;width:176px;min-height:84px"><strong>首次复制完成</strong></div><div class="flow-node" style="left:1388px;top:174px;width:176px;min-height:84px"><strong>暂停新的系统更新下载</strong><small>已开始的下载继续完成</small></div><div class="flow-node decision" style="left:1588px;top:141px"><strong>当前写入任务已结束？</strong></div><div class="flow-node" style="left:1788px;top:174px;width:176px;min-height:84px"><strong>补复制迁移期间新增或变化的文件</strong></div><div class="flow-node decision" style="left:1988px;top:141px"><strong>校验文件数量、大小、完整性</strong></div><div class="flow-node" style="left:2188px;top:174px;width:176px;min-height:84px"><strong>动态更新资源库路径</strong><small>不重启 BS</small></div><div class="flow-node decision" style="left:2388px;top:141px"><strong>BS 可读取新目录？</strong></div><div class="flow-node" style="left:2588px;top:174px;width:176px;min-height:84px"><strong>恢复系统更新下载</strong><small>后续文件写入新盘</small></div><div class="flow-node" style="left:2788px;top:174px;width:176px;min-height:84px"><strong>原目录保留一段时间</strong></div><div class="flow-node" style="left:2988px;top:174px;width:176px;min-height:84px"><strong>确认稳定后清理原目录</strong></div><div class="flow-node" style="left:374px;top:382px;width:190px;min-height:76px"><strong>提示原因，不执行迁移</strong></div><div class="flow-node" style="left:1968px;top:382px;width:190px;min-height:76px"><strong>不切换路径</strong><small>恢复下载，保留原目录</small></div><div class="flow-node" style="left:2368px;top:382px;width:190px;min-height:76px"><strong>恢复原路径</strong><small>恢复下载，保留两份文件</small></div></div>`;
+      content.querySelector('.flowchart-scroll').innerHTML = `<div class="flowchart-board" style="width:1140px;height:1840px"><svg class="flowchart-svg" viewBox="0 0 1140 1840" aria-hidden="true"><defs><marker id="flow-arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M 0 0 L 10 5 L 0 10 z" fill="#80a393"></path></marker></defs><path marker-end="url(#flow-arrow)" d="M490 84V110"></path><path marker-end="url(#flow-arrow)" d="M490 194V210"></path><path marker-end="url(#flow-arrow)" d="M490 336V360"></path><path marker-end="url(#flow-arrow)" d="M490 444V460"></path><path marker-end="url(#flow-arrow)" d="M490 544V560"></path><path marker-end="url(#flow-arrow)" d="M490 644V660"></path><path marker-end="url(#flow-arrow)" d="M490 744V760"></path><path marker-end="url(#flow-arrow)" d="M490 844V860"></path><path marker-end="url(#flow-arrow)" d="M490 986V1010"></path><path marker-end="url(#flow-arrow)" d="M490 1094V1110"></path><path marker-end="url(#flow-arrow)" d="M490 1236V1260"></path><path marker-end="url(#flow-arrow)" d="M490 1344V1360"></path><path marker-end="url(#flow-arrow)" d="M490 1486V1510"></path><path marker-end="url(#flow-arrow)" d="M490 1594V1610"></path><path marker-end="url(#flow-arrow)" d="M490 1694V1710"></path><path marker-end="url(#flow-arrow)" d="M553 273H780"></path><path marker-end="url(#flow-arrow)" d="M427 923H330V802H390"></path><path marker-end="url(#flow-arrow)" d="M553 1173H780"></path><path marker-end="url(#flow-arrow)" d="M553 1423H780"></path><text x="650" y="262">否</text><text x="502" y="350">是</text><text x="360" y="912">否</text><text x="502" y="1000">是</text><text x="650" y="1162">失败</text><text x="502" y="1250">通过</text><text x="650" y="1412">否</text><text x="502" y="1500">通过</text></svg><div class="flow-node start" style="left:405px;top:36px;width:170px">管理员点击 迁移系统更新资源库</div><div class="flow-node" style="left:390px;top:110px;width:200px;min-height:84px"><strong>选择目标盘</strong></div><div class="flow-node decision" style="left:427px;top:210px"><strong>检查通过？</strong><small>目标盘可写、空间足够、不是原盘</small></div><div class="flow-node" style="left:390px;top:360px;width:200px;min-height:84px"><strong>确认迁移</strong></div><div class="flow-node" style="left:390px;top:460px;width:200px;min-height:84px"><strong>后台复制原 系统更新 文件夹</strong></div><div class="flow-node" style="left:390px;top:560px;width:200px;min-height:84px"><strong>BS 继续运行</strong><small>新下载仍写入原目录</small></div><div class="flow-node" style="left:390px;top:660px;width:200px;min-height:84px"><strong>首次复制完成</strong></div><div class="flow-node" style="left:390px;top:760px;width:200px;min-height:84px"><strong>暂停新的系统更新下载</strong><small>已开始的下载继续完成</small></div><div class="flow-node decision" style="left:427px;top:860px"><strong>当前写入任务已结束？</strong></div><div class="flow-node" style="left:390px;top:1010px;width:200px;min-height:84px"><strong>补复制迁移期间新增或变化的文件</strong></div><div class="flow-node decision" style="left:427px;top:1110px"><strong>校验文件数量、大小、完整性</strong></div><div class="flow-node" style="left:390px;top:1260px;width:200px;min-height:84px"><strong>动态更新资源库路径</strong><small>不重启 BS</small></div><div class="flow-node decision" style="left:427px;top:1360px"><strong>BS 可读取新目录？</strong></div><div class="flow-node" style="left:390px;top:1510px;width:200px;min-height:84px"><strong>恢复系统更新下载</strong><small>后续文件写入新盘</small></div><div class="flow-node" style="left:390px;top:1610px;width:200px;min-height:84px"><strong>原目录保留一段时间</strong></div><div class="flow-node" style="left:390px;top:1710px;width:200px;min-height:84px"><strong>确认稳定后清理原目录</strong></div><div class="flow-node" style="left:780px;top:230px;width:200px;min-height:84px"><strong>提示原因，不执行迁移</strong></div><div class="flow-node" style="left:780px;top:1128px;width:200px;min-height:84px"><strong>不切换路径</strong><small>恢复下载，保留原目录</small></div><div class="flow-node" style="left:780px;top:1378px;width:200px;min-height:84px"><strong>恢复原路径</strong><small>恢复下载，保留两份文件</small></div></div>`;
+      const entrySection = Array.from(content.querySelectorAll('.migration-section')).find(section => section.querySelector('h2')?.textContent === '操作入口');
+      if (entrySection) {
+        entrySection.querySelector('h2').textContent = '交互流程';
+        entrySection.querySelectorAll('p').forEach(paragraph => paragraph.remove());
+        entrySection.insertAdjacentHTML('beforeend', '<div class="interaction-flow"><img src="assets/download-settings.png" alt="下载设置页面"><button type="button" class="migration-entry-btn">迁徙资源库</button></div>');
+        entrySection.querySelector('.migration-entry-btn').addEventListener('click', renderMigrationConfig);
+      }
+      const routeHeading = Array.from(content.querySelectorAll('.migration-section h2')).find(heading => heading.textContent === '后台任务路线图');
+      if (routeHeading) routeHeading.textContent = '后台任务路线';
+    }
+    function renderMigrationConfig() {
+      const existing = document.querySelector('.migration-modal-backdrop');
+      if (existing) existing.remove();
+      document.body.insertAdjacentHTML('beforeend', `<div class="migration-modal-backdrop is-open" role="presentation"><div class="migration-modal migration-workbench" role="dialog" aria-modal="true" aria-labelledby="migration-modal-title"><div class="migration-modal__head"><div><h3 id="migration-modal-title">迁徙资源库</h3><small style="color:#7b8982;font-size:11px">系统更新 · 目标盘配置</small></div><button type="button" class="migration-modal__close" aria-label="关闭">×</button></div><div class="migration-workbench__layout"><section class="migration-config-pane"><div class="migration-summary"><div class="migration-metric"><span>系统更新已占用</span><strong>120 GB</strong><small>D:\系统更新</small></div><div class="migration-metric"><span>下载任务剩余</span><strong>14 GB</strong><small>3 个任务正在下载</small></div><div class="migration-metric"><span>预计需要空间</span><strong>147.4 GB</strong><small>含 13.4 GB 安全预留</small></div></div><div class="migration-block-title"><strong>选择目标盘</strong><span>仅显示本机可用盘符</span></div><div class="disk-list"><button type="button" class="disk-option" disabled><span class="disk-radio"></span><span class="disk-name">D:\</span><span class="disk-meta"><strong>机械硬盘 HDD</strong><small>当前系统更新资源库所在盘</small></span><span class="disk-space"><span class="disk-space__label"><span>剩余 842 GB</span><span>1.8 TB</span></span><span class="disk-space__bar"><i style="width:46%"></i></span></span><span class="disk-status is-muted">当前所在盘</span></button><button type="button" class="disk-option is-selected" data-drive="E"><span class="disk-radio"></span><span class="disk-name">E:\</span><span class="disk-meta"><strong>固态硬盘 SSD</strong><small>NVMe · Samsung SSD 980</small></span><span class="disk-space"><span class="disk-space__label"><span>剩余 286 GB</span><span>476 GB</span></span><span class="disk-space__bar"><i style="width:60%"></i></span></span><span class="disk-status">推荐</span></button><button type="button" class="disk-option" disabled><span class="disk-radio"></span><span class="disk-name">F:\</span><span class="disk-meta"><strong>固态硬盘 SSD</strong><small>SATA · Kingston SA400</small></span><span class="disk-space"><span class="disk-space__label"><span>剩余 92 GB</span><span>238 GB</span></span><span class="disk-space__bar"><i style="width:39%"></i></span></span><span class="disk-status is-error">空间不足</span></button></div><div class="migration-selection"><span>迁徙至 <strong>E:\系统更新</strong></span><span>完成后预计剩余 <strong>138.6 GB</strong></span></div><div class="migration-actions"><button type="button" class="migration-secondary migration-cancel">取消</button><button type="button" class="migration-modal__action migration-start">开始迁徙</button></div></section><aside class="migration-dev-pane"><h4>研发实现说明</h4><div class="dev-callout"><span class="dev-callout__number">1</span><b>容量口径</b>已占用 + 下载任务未完成大小 + 安全预留；不得重复计算已落盘部分。</div><div class="dev-callout"><span class="dev-callout__number">2</span><b>磁盘信息</b>展示盘符、SSD/HDD、设备型号、剩余/总容量；识别失败显示“类型未知”。</div><div class="dev-callout"><span class="dev-callout__number">3</span><b>禁用规则</b>原盘、空间不足、只读、离线均置灰，状态标签必须显示具体原因。</div><div class="dev-callout"><span class="dev-callout__number">4</span><b>选择反馈</b>选中后即时计算目标路径和迁徙完成后的预计剩余空间。</div><div class="dev-callout"><span class="dev-callout__number">5</span><b>按钮条件</b>目标盘有效且当前无迁徙任务时启用；点击后再次执行空间预检。</div><div class="dev-callout"><span class="dev-callout__number">6</span><b>后台任务</b>关闭弹窗不终止任务；入口改为“迁徙中 + 百分比”，可重新打开查看。</div></aside><span class="dev-pin" style="left:712px;top:48px">1</span><span class="dev-pin" style="left:712px;top:150px">2</span><span class="dev-pin" style="left:712px;top:360px">3</span><span class="dev-pin" style="left:712px;top:474px">4</span><span class="dev-pin" style="left:712px;top:535px">5</span><span class="dev-pin" style="left:712px;top:594px">6</span><svg class="migration-annotation-lines" viewBox="0 0 1160 650" preserveAspectRatio="none" aria-hidden="true"><path d="M722 58 C760 58 770 64 790 64"></path><path d="M722 160 C760 160 770 146 790 146"></path><path d="M722 370 C760 370 770 230 790 230"></path><path d="M722 484 C760 484 770 314 790 314"></path><path d="M722 545 C760 545 770 398 790 398"></path><path d="M722 604 C760 604 770 482 790 482"></path></svg></div></div></div>`);
+      const modal = document.querySelector('.migration-modal-backdrop');
+      const close = () => modal.remove();
+      modal.addEventListener('click', event => { if (event.target === modal) close(); });
+      modal.querySelector('.migration-modal__close').addEventListener('click', close);
+      modal.querySelector('.migration-cancel').addEventListener('click', close);
+      modal.querySelector('.migration-start').addEventListener('click', () => {
+        const layout = modal.querySelector('.migration-workbench__layout');
+        layout.innerHTML = `<section class="migration-config-pane migration-progress-view"><div class="task-overview"><div><h4>正在复制系统更新资源库</h4><p>D:\系统更新 → E:\系统更新 · 后台任务</p></div><div class="task-progress-number">56%</div></div><div class="task-progress-bar"><i></i></div><div class="task-steps"><div class="task-step done"><b>检查目标盘</b>空间、写入权限和目标路径检查通过</div><div class="task-step active"><b>复制资源库</b>已复制 68.2 GB / 120 GB · 82 MB/s</div><div class="task-step"><b>等待当前下载完成</b>显示剩余下载任务数量，不展示虚假百分比</div><div class="task-step"><b>补复制新增文件</b>同步首次复制期间新增或变化的文件</div><div class="task-step"><b>校验文件</b>按文件数量、大小和完整性显示进度</div><div class="task-step"><b>切换路径并验证</b>动态更新资源库路径并确认 BS 可读取</div><div class="task-step"><b>完成</b>恢复下载，后续文件写入新盘</div></div><div class="migration-actions"><button type="button" class="migration-secondary task-close">关闭弹窗，后台继续</button></div></section><aside class="migration-dev-pane"><h4>执行态说明</h4><div class="dev-callout"><span class="dev-callout__number">1</span><b>总体进度</b>只在可计算字节的阶段显示百分比，同时展示已完成/总大小和速度。</div><div class="dev-callout"><span class="dev-callout__number">2</span><b>等待状态</b>等待当前下载结束时使用动态状态，并显示剩余任务数，不冻结在某个百分比。</div><div class="dev-callout"><span class="dev-callout__number">3</span><b>阶段明细</b>复制、等待、补复制、校验、切换、验证分别记录状态与失败原因。</div><div class="dev-callout"><span class="dev-callout__number">4</span><b>离开页面</b>任务由后台执行。重新打开弹窗时必须读取真实任务状态，不从头播放。</div></aside>`;
+        layout.querySelector('.task-close').addEventListener('click', close);
+      });
+      document.addEventListener('keydown', function closeOnEscape(event) { if (event.key === 'Escape') { close(); document.removeEventListener('keydown', closeOnEscape); } }, {once:true});
+    }
+    function ensureNoteSection(reqId) { let note = content.querySelector('.note-section'); if (!note) { content.querySelector('.content-view')?.insertAdjacentHTML('beforeend', `<section class="note-section"><h2>备注</h2><textarea class="note-field" readonly placeholder="开启编辑模式后输入备注"></textarea></section>`); note = content.querySelector('.note-section'); } try { note.querySelector('.note-field').value = localStorage.getItem(`prototype-note-${reqId}`) || ''; } catch (error) {} }
+    function directoryTargets() { return [document.getElementById('todayLabel'), ...Array.from(document.querySelectorAll('.req-btn'))].filter(Boolean); }
+    function applySavedDirectory() { try { const saved = JSON.parse(localStorage.getItem('prototype-directory') || '{}'); const date = document.getElementById('todayLabel'); if (saved.date) date.textContent = saved.date; document.querySelectorAll('.req-btn').forEach((button, index) => { if (saved[index]) button.textContent = saved[index]; }); } catch (error) {} }
+    function editableTargets() { return Array.from(content.querySelectorAll('h1,h2,h3,h4,p,li,strong,small,dt,dd')).filter(node => !node.closest('.flowchart-svg') && !node.closest('.note-section')); }
+    function applySavedText(reqId) { try { const saved = JSON.parse(localStorage.getItem(`prototype-text-${reqId}`) || '{}'); editableTargets().forEach((node, index) => { if (Object.prototype.hasOwnProperty.call(saved, index)) node.textContent = saved[index]; }); } catch (error) {} ensureNoteSection(reqId); applySavedDirectory(); }
+    function setEditMode(enabled) { const targets = [...editableTargets(), ...directoryTargets()]; targets.forEach(node => { node.classList.toggle('text-editable', enabled); node.contentEditable = enabled ? 'true' : 'false'; node.spellcheck = false; }); const note = content.querySelector('.note-field'); if (note) note.readOnly = !enabled; editorToggle.classList.toggle('is-editing', enabled); editorToggle.textContent = enabled ? '保存文字' : '开启编辑模式'; editorToggle.setAttribute('aria-pressed', String(enabled)); }
+    function saveEditedText() { const reqId = content.querySelector('.eyebrow')?.textContent?.includes('需求 2') ? 'req-2' : 'req-1'; const values = {}; editableTargets().forEach((node, index) => { values[index] = node.textContent; }); const directory = {date: document.getElementById('todayLabel').textContent}; document.querySelectorAll('.req-btn').forEach((button, index) => { directory[index] = button.textContent; }); try { localStorage.setItem(`prototype-text-${reqId}`, JSON.stringify(values)); localStorage.setItem('prototype-directory', JSON.stringify(directory)); const note = content.querySelector('.note-field'); if (note) localStorage.setItem(`prototype-note-${reqId}`, note.value); } catch (error) {} setEditMode(false); }
+    editorToggle.addEventListener('click', () => { if (editorToggle.classList.contains('is-editing')) saveEditedText(); else setEditMode(true); });
+    function render(id) { const req = requirements.find(item => item.id === id) || requirements[0]; setEditMode(false); document.querySelectorAll('.req-btn').forEach(btn => btn.classList.toggle('active', btn.dataset.id === req.id)); if (req.id === 'req-1') { renderHardwarePrototype(); applySavedText(req.id); return; } if (req.id === 'req-2') { renderMigrationRequirement(); applySavedText(req.id); return; } content.innerHTML = `<div class="content-view empty-view"><div class="eyebrow">${padDate}</div><h1>${req.title}</h1><div class="rule"></div></div>`; applySavedText(req.id); }
+    requirements.forEach((req, index) => { const btn = document.createElement('button'); btn.className = 'req-btn' + (index === 0 ? ' active' : ''); btn.dataset.id = req.id; btn.textContent = req.title; btn.addEventListener('click', () => { if (!editorToggle.classList.contains('is-editing')) render(req.id); }); list.appendChild(btn); });
+    sidebarToggle.addEventListener('click', () => {
+      const collapsed = shell.classList.toggle('sidebar-collapsed');
+      sidebarToggle.setAttribute('aria-expanded', String(!collapsed));
+      sidebarToggle.setAttribute('aria-label', collapsed ? '显示需求目录' : '隐藏需求目录');
+    });
+    dateToggle.addEventListener('click', () => {
+      if (editorToggle.classList.contains('is-editing')) return;
+      const hidden = list.classList.toggle('is-hidden');
+      dateToggle.setAttribute('aria-expanded', String(!hidden));
+    });
+    render('req-1');
+  </script>
+</body>
+</html>
