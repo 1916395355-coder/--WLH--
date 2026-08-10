@@ -64,6 +64,9 @@
     .migration-section h2::before { content:""; width:4px; height:19px; border-radius:4px; background:var(--accent); }
     .migration-section p { margin:0; color:#52615b; font-size:14px; line-height:1.9; }
     .migration-section p + p { margin-top:9px; }
+    .requirement-images { display:grid; gap:16px; margin-top:16px; }
+    .requirement-image { margin:0; overflow:hidden; border:1px solid #dfe6e3; border-radius:8px; background:#fff; box-shadow:0 10px 28px rgba(43,63,56,.07); }
+    .requirement-image img { display:block; width:100%; height:auto; }
     .fact-note { display:inline-flex; align-items:center; min-height:28px; margin-bottom:14px; padding:0 10px; border-radius:5px; background:#e9f5ef; color:#2f7559; font-size:12px; font-weight:700; }
     .flowchart-scroll { overflow-x:auto; padding:4px 0 14px; scrollbar-color:#b8cbc1 transparent; }
     .flowchart-board { position:relative; width:1760px; height:450px; border:1px solid #e0eae5; border-radius:8px; background:#fbfdfb; overflow:hidden; }
@@ -268,7 +271,7 @@
     const now = new Date();
     const padDate = `${now.getFullYear()}/${now.getMonth()+1}/${now.getDate()}`;
     document.getElementById('todayLabel').textContent = padDate;
-    const requirements = [{ id:'req-1', title:'需求 1 · 客户机硬件详细查看功能' }, { id:'req-2', title:'需求 2 · 迁徙资源库' }];
+    const requirements = [{ id:'req-1', title:'需求 1 · 客户机硬件详细查看功能' }, { id:'req-2', title:'需求 2 · 迁徙资源库' }, { id:'req-3', title:'需求 3 · 下载速度文案统一' }, { id:'req-4', title:'需求 4 · 下载速度单位动态显示' }];
     const list = document.getElementById('reqList');
     const content = document.getElementById('content');
     const shell = document.querySelector('.shell');
@@ -356,6 +359,12 @@
       const routeHeading = Array.from(content.querySelectorAll('.migration-section h2')).find(heading => heading.textContent === '后台任务路线图');
       if (routeHeading) routeHeading.textContent = '后台任务路线';
     }
+    function renderDownloadSpeedRequirement() {
+      content.innerHTML = `<article class="content-view migration-document"><div class="eyebrow">${padDate} / 需求 3</div><h1>下载速度文案统一</h1><section class="migration-section"><h2>需求背景</h2><p>目前界面中“下载速度”的表述存在不一致，有的地方写“下载速度”，有的只写“速度”，有的写“下载”。</p></section><section class="migration-section"><h2>功能详述</h2><p>图示两个页面文案统一为：下载速度</p><div class="requirement-images"><figure class="requirement-image"><img src="assets/download-speed-monitoring.png" alt="游戏下载监控页面下载速度文案"></figure><figure class="requirement-image"><img src="assets/download-speed-center.png" alt="资源下载中心页面下载速度文案"></figure></div></section></article>`;
+    }
+    function renderDownloadSpeedUnitRequirement() {
+      content.innerHTML = `<article class="content-view migration-document"><div class="eyebrow">${padDate} / 需求 4</div><h1>下载速度单位动态显示</h1><section class="migration-section"><h2>需求背景</h2><p>当前游戏下载监控和网吧正在下载两个页面的总下载速度单位不统一，存在 KB/s 和 MB/s 混用的情况。</p></section><section class="migration-section"><h2>需求详述</h2><p>以上两部分单位优化为动态显示逻辑，当速度小于 1 MB/s 时，单位显示为 <strong>KB/s</strong>；当速度大于等于 1 MB/s 时，单位自动切换为 <strong>MB/s</strong>。</p><div class="requirement-images"><figure class="requirement-image"><img src="assets/download-speed-unit-dynamic.jpg" alt="下载速度单位动态显示示意"></figure></div></section></article>`;
+    }
     function renderMigrationConfig() {
       const existing = document.querySelector('.migration-modal-backdrop');
       if (existing) existing.remove();
@@ -419,9 +428,9 @@
     function editableTargets() { return Array.from(content.querySelectorAll('h1,h2,h3,h4,p,li,strong,small,dt,dd')).filter(node => !node.closest('.flowchart-svg') && !node.closest('.note-section')); }
     function applySavedText(reqId) { try { const saved = JSON.parse(localStorage.getItem(`prototype-text-${reqId}`) || '{}'); editableTargets().forEach((node, index) => { if (Object.prototype.hasOwnProperty.call(saved, index)) node.textContent = saved[index]; }); } catch (error) {} ensureNoteSection(reqId); applySavedDirectory(); }
     function setEditMode(enabled) { const targets = [...editableTargets(), ...directoryTargets()]; targets.forEach(node => { node.classList.toggle('text-editable', enabled); node.contentEditable = enabled ? 'true' : 'false'; node.spellcheck = false; }); const note = content.querySelector('.note-field'); if (note) note.readOnly = !enabled; editorToggle.classList.toggle('is-editing', enabled); editorToggle.textContent = enabled ? '保存文字' : '开启编辑模式'; editorToggle.setAttribute('aria-pressed', String(enabled)); }
-    function saveEditedText() { const reqId = content.querySelector('.eyebrow')?.textContent?.includes('需求 2') ? 'req-2' : 'req-1'; const values = {}; editableTargets().forEach((node, index) => { values[index] = node.textContent; }); const directory = {date: document.getElementById('todayLabel').textContent}; document.querySelectorAll('.req-btn').forEach((button, index) => { directory[index] = button.textContent; }); try { localStorage.setItem(`prototype-text-${reqId}`, JSON.stringify(values)); localStorage.setItem('prototype-directory', JSON.stringify(directory)); const note = content.querySelector('.note-field'); if (note) localStorage.setItem(`prototype-note-${reqId}`, note.value); } catch (error) {} setEditMode(false); }
+    function saveEditedText() { const number = content.querySelector('.eyebrow')?.textContent?.match(/需求\s*(\d+)/)?.[1]; const reqId = requirements.find(req => req.id === `req-${number}`)?.id || 'req-1'; const values = {}; editableTargets().forEach((node, index) => { values[index] = node.textContent; }); const directory = {date: document.getElementById('todayLabel').textContent}; document.querySelectorAll('.req-btn').forEach((button, index) => { directory[index] = button.textContent; }); try { localStorage.setItem(`prototype-text-${reqId}`, JSON.stringify(values)); localStorage.setItem('prototype-directory', JSON.stringify(directory)); const note = content.querySelector('.note-field'); if (note) localStorage.setItem(`prototype-note-${reqId}`, note.value); } catch (error) {} setEditMode(false); }
     editorToggle.addEventListener('click', () => { if (editorToggle.classList.contains('is-editing')) saveEditedText(); else setEditMode(true); });
-    function render(id) { const req = requirements.find(item => item.id === id) || requirements[0]; setEditMode(false); document.querySelectorAll('.req-btn').forEach(btn => btn.classList.toggle('active', btn.dataset.id === req.id)); if (req.id === 'req-1') { renderHardwarePrototype(); applySavedText(req.id); return; } if (req.id === 'req-2') { renderMigrationRequirement(); applySavedText(req.id); return; } content.innerHTML = `<div class="content-view empty-view"><div class="eyebrow">${padDate}</div><h1>${req.title}</h1><div class="rule"></div></div>`; applySavedText(req.id); }
+    function render(id) { const req = requirements.find(item => item.id === id) || requirements[0]; setEditMode(false); document.querySelectorAll('.req-btn').forEach(btn => btn.classList.toggle('active', btn.dataset.id === req.id)); if (req.id === 'req-1') { renderHardwarePrototype(); applySavedText(req.id); return; } if (req.id === 'req-2') { renderMigrationRequirement(); applySavedText(req.id); return; } if (req.id === 'req-3') { renderDownloadSpeedRequirement(); applySavedText(req.id); return; } if (req.id === 'req-4') { renderDownloadSpeedUnitRequirement(); applySavedText(req.id); return; } content.innerHTML = `<div class="content-view empty-view"><div class="eyebrow">${padDate}</div><h1>${req.title}</h1><div class="rule"></div></div>`; applySavedText(req.id); }
     requirements.forEach((req, index) => { const btn = document.createElement('button'); btn.className = 'req-btn' + (index === 0 ? ' active' : ''); btn.dataset.id = req.id; btn.textContent = req.title; btn.addEventListener('click', () => { if (!editorToggle.classList.contains('is-editing')) render(req.id); }); list.appendChild(btn); });
     sidebarToggle.addEventListener('click', () => {
       const collapsed = shell.classList.toggle('sidebar-collapsed');
