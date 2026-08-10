@@ -143,7 +143,9 @@
     .dev-callout b { display:block; margin-bottom:3px; color:#3f5149; font-size:12px; }
     .dev-callout__number, .dev-pin { display:grid; place-items:center; border-radius:50%; background:#d98263; color:#fff; font-size:10px; font-weight:750; }
     .dev-callout__number { position:absolute; left:12px; top:12px; width:20px; height:20px; }
-    .dev-pin { position:absolute; z-index:3; width:20px; height:20px; box-shadow:0 0 0 3px #fff; }
+    .dev-pin { position:absolute; z-index:3; width:20px; height:20px; box-shadow:0 0 0 3px #fff; cursor:grab; touch-action:none; user-select:none; transition:transform .16s ease,box-shadow .16s ease; }
+    .dev-pin:hover { transform:scale(1.08); box-shadow:0 0 0 3px #fff,0 4px 12px rgba(118,66,45,.18); }
+    .dev-pin.is-dragging { cursor:grabbing; transform:scale(1.12); box-shadow:0 0 0 3px #fff,0 7px 18px rgba(118,66,45,.24); }
     .migration-annotation-lines { position:absolute; z-index:1; inset:0; width:100%; height:100%; pointer-events:none; }
     .migration-annotation-lines path { fill:none; stroke:#d9a48f; stroke-width:1.2; stroke-dasharray:3 3; }
     .migration-progress-view { padding:22px; }
@@ -359,6 +361,47 @@
       if (existing) existing.remove();
       document.body.insertAdjacentHTML('beforeend', `<div class="migration-modal-backdrop is-open" role="presentation"><div class="migration-modal migration-workbench" role="dialog" aria-modal="true" aria-labelledby="migration-modal-title"><div class="migration-modal__head"><div><h3 id="migration-modal-title">迁徙资源库</h3><small style="color:#7b8982;font-size:11px">系统更新 · 目标盘配置</small></div><button type="button" class="migration-modal__close" aria-label="关闭">×</button></div><div class="migration-workbench__layout"><section class="migration-config-pane"><div class="migration-summary"><div class="migration-metric"><span>系统更新已占用</span><strong>120 GB</strong><small>D:\系统更新</small></div><div class="migration-metric"><span>下载任务剩余</span><strong>14 GB</strong><small>3 个任务正在下载</small></div><div class="migration-metric"><span>预计需要空间</span><strong>147.4 GB</strong><small>含 13.4 GB 安全预留</small></div></div><div class="migration-block-title"><strong>选择目标盘</strong><span>仅显示本机可用盘符</span></div><div class="disk-list"><button type="button" class="disk-option" disabled><span class="disk-radio"></span><span class="disk-name">D:\</span><span class="disk-meta"><strong>机械硬盘 HDD</strong><small>当前系统更新资源库所在盘</small></span><span class="disk-space"><span class="disk-space__label"><span>剩余 842 GB</span><span>1.8 TB</span></span><span class="disk-space__bar"><i style="width:46%"></i></span></span><span class="disk-status is-muted">当前所在盘</span></button><button type="button" class="disk-option is-selected" data-drive="E"><span class="disk-radio"></span><span class="disk-name">E:\</span><span class="disk-meta"><strong>固态硬盘 SSD</strong><small>NVMe · Samsung SSD 980</small></span><span class="disk-space"><span class="disk-space__label"><span>剩余 286 GB</span><span>476 GB</span></span><span class="disk-space__bar"><i style="width:60%"></i></span></span><span class="disk-status">推荐</span></button><button type="button" class="disk-option" disabled><span class="disk-radio"></span><span class="disk-name">F:\</span><span class="disk-meta"><strong>固态硬盘 SSD</strong><small>SATA · Kingston SA400</small></span><span class="disk-space"><span class="disk-space__label"><span>剩余 92 GB</span><span>238 GB</span></span><span class="disk-space__bar"><i style="width:39%"></i></span></span><span class="disk-status is-error">空间不足</span></button></div><div class="migration-selection"><span>迁徙至 <strong>E:\系统更新</strong></span><span>完成后预计剩余 <strong>138.6 GB</strong></span></div><div class="migration-actions"><button type="button" class="migration-secondary migration-cancel">取消</button><button type="button" class="migration-modal__action migration-start">开始迁徙</button></div></section><aside class="migration-dev-pane"><h4>研发实现说明</h4><div class="dev-callout"><span class="dev-callout__number">1</span><b>容量口径</b>已占用 + 下载任务未完成大小 + 安全预留；不得重复计算已落盘部分。</div><div class="dev-callout"><span class="dev-callout__number">2</span><b>磁盘信息</b>展示盘符、SSD/HDD、设备型号、剩余/总容量；识别失败显示“类型未知”。</div><div class="dev-callout"><span class="dev-callout__number">3</span><b>禁用规则</b>原盘、空间不足、只读、离线均置灰，状态标签必须显示具体原因。</div><div class="dev-callout"><span class="dev-callout__number">4</span><b>选择反馈</b>选中后即时计算目标路径和迁徙完成后的预计剩余空间。</div><div class="dev-callout"><span class="dev-callout__number">5</span><b>按钮条件</b>目标盘有效且当前无迁徙任务时启用；点击后再次执行空间预检。</div><div class="dev-callout"><span class="dev-callout__number">6</span><b>后台任务</b>关闭弹窗不终止任务；入口改为“迁徙中 + 百分比”，可重新打开查看。</div></aside><span class="dev-pin" style="left:712px;top:48px">1</span><span class="dev-pin" style="left:712px;top:150px">2</span><span class="dev-pin" style="left:712px;top:360px">3</span><span class="dev-pin" style="left:712px;top:474px">4</span><span class="dev-pin" style="left:712px;top:535px">5</span><span class="dev-pin" style="left:712px;top:594px">6</span><svg class="migration-annotation-lines" viewBox="0 0 1160 650" preserveAspectRatio="none" aria-hidden="true"><path d="M722 58 C760 58 770 64 790 64"></path><path d="M722 160 C760 160 770 146 790 146"></path><path d="M722 370 C760 370 770 230 790 230"></path><path d="M722 484 C760 484 770 314 790 314"></path><path d="M722 545 C760 545 770 398 790 398"></path><path d="M722 604 C760 604 770 482 790 482"></path></svg></div></div></div>`);
       const modal = document.querySelector('.migration-modal-backdrop');
+      const annotationLayout = modal.querySelector('.migration-workbench__layout');
+      const annotationPins = Array.from(annotationLayout.querySelectorAll('.dev-pin'));
+      const annotationPaths = Array.from(annotationLayout.querySelectorAll('.migration-annotation-lines path'));
+      const annotationTargets = [[790,64],[790,146],[790,230],[790,314],[790,398],[790,482]];
+      const annotationStorageKey = 'migration-dev-pin-positions';
+      const syncAnnotationLines = () => annotationPins.forEach((pin, index) => {
+        const startX = Number.parseFloat(pin.style.left) + 10;
+        const startY = Number.parseFloat(pin.style.top) + 10;
+        const [endX, endY] = annotationTargets[index];
+        annotationPaths[index].setAttribute('d', `M${startX} ${startY} C${startX + 38} ${startY} ${endX - 30} ${endY} ${endX} ${endY}`);
+      });
+      const saveAnnotationPins = () => { try { localStorage.setItem(annotationStorageKey, JSON.stringify(annotationPins.map(pin => ({left:pin.style.left,top:pin.style.top})))); } catch (error) {} };
+      try { const savedPins = JSON.parse(localStorage.getItem(annotationStorageKey) || '[]'); savedPins.forEach((position, index) => { if (annotationPins[index] && position?.left && position?.top) { annotationPins[index].style.left = position.left; annotationPins[index].style.top = position.top; } }); } catch (error) {}
+      annotationPins.forEach(pin => pin.addEventListener('pointerdown', event => {
+        event.preventDefault();
+        const pinBounds = pin.getBoundingClientRect();
+        const layoutBounds = annotationLayout.getBoundingClientRect();
+        const offsetX = event.clientX - pinBounds.left;
+        const offsetY = event.clientY - pinBounds.top;
+        pin.classList.add('is-dragging');
+        pin.setPointerCapture(event.pointerId);
+        const move = moveEvent => {
+          const left = Math.max(0, Math.min(moveEvent.clientX - layoutBounds.left - offsetX, annotationLayout.clientWidth - pin.offsetWidth));
+          const top = Math.max(0, Math.min(moveEvent.clientY - layoutBounds.top - offsetY, annotationLayout.clientHeight - pin.offsetHeight));
+          pin.style.left = `${left}px`;
+          pin.style.top = `${top}px`;
+          syncAnnotationLines();
+        };
+        const end = endEvent => {
+          pin.classList.remove('is-dragging');
+          if (pin.hasPointerCapture(endEvent.pointerId)) pin.releasePointerCapture(endEvent.pointerId);
+          saveAnnotationPins();
+          pin.removeEventListener('pointermove', move);
+          pin.removeEventListener('pointerup', end);
+          pin.removeEventListener('pointercancel', end);
+        };
+        pin.addEventListener('pointermove', move);
+        pin.addEventListener('pointerup', end);
+        pin.addEventListener('pointercancel', end);
+      }));
+      syncAnnotationLines();
       const close = () => modal.remove();
       modal.addEventListener('click', event => { if (event.target === modal) close(); });
       modal.querySelector('.migration-modal__close').addEventListener('click', close);
