@@ -23,7 +23,7 @@
     .date-row:focus-visible { outline:2px solid var(--focus); outline-offset:2px; }
     .date-row__icon { color:var(--accent); font-size:10px; transform:rotate(0); transition:transform .28s cubic-bezier(.2,0,0,1); }
     .date-row[aria-expanded="false"] .date-row__icon { transform:rotate(-90deg); }
-    .req-list { display:grid; gap:5px; max-height:160px; margin-top:4px; overflow:hidden; opacity:1; transform:translateY(0); transition:max-height .3s cubic-bezier(.2,0,0,1),opacity .2s ease,transform .3s cubic-bezier(.2,0,0,1),margin .3s ease; }
+    .req-list { display:grid; gap:5px; max-height:min(360px,calc(100vh - 152px)); margin-top:4px; padding-right:3px; overflow-y:auto; overflow-x:hidden; scrollbar-width:thin; scrollbar-color:#c5d5ce transparent; opacity:1; transform:translateY(0); transition:max-height .3s cubic-bezier(.2,0,0,1),opacity .2s ease,transform .3s cubic-bezier(.2,0,0,1),margin .3s ease; }
     .req-list.is-hidden { max-height:0; margin-top:0; opacity:0; transform:translateY(-6px); pointer-events:none; }
     .req-btn { position:relative; width:100%; min-height:44px; border:0; border-radius:8px; padding:11px 14px 11px 32px; background:transparent; color:#53635d; text-align:left; cursor:pointer; transition:background .18s ease,color .18s ease,transform .18s ease; }
     .req-btn::before { content:""; position:absolute; left:14px; top:50%; width:5px; height:5px; border-radius:50%; background:#a5b5ae; transform:translateY(-50%); }
