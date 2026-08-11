@@ -327,8 +327,8 @@
       ])}</dl></section>`;
     const prdMarkup = `<section class="prd-document" aria-label="需求文档">
       <div class="prd-module"><h2>需求背景</h2><div class="prd-module__content"><p>当前客户机资产列表字段过多，导致长列表横向滚动频繁。网管在排查单机硬件问题时，定位信息效率低，且看串行容易误判。</p></div></div>
-      <div class="prd-module"><h2>设计目标</h2><div class="prd-module__content"><p>通过双击打开详情面板，把单台客户机的硬件配置汇总展示。</p></div></div>
-      <div class="prd-module"><h2>功能详述</h2><div class="prd-module__content"><p>路径：客户机管理→客户机资产列表</p><p>功能1：查看客户机硬件详情</p><p>双击列表中的单条数据，即可打开硬件详情</p><p>右键列表中的单条数据，弹出菜单，点击“查看客户机详情”即可打开详情</p></div></div>
+      <div class="prd-module"><h2>设计目标</h2><div class="prd-module__content"><p>通过双击列表数据或右键呼出菜单打开详情面板，把单台客户机的硬件配置汇总展示。</p></div></div>
+      <div class="prd-module"><h2>功能详述</h2><div class="prd-module__content"><p>路径：客户机管理→客户机资产列表</p><p>功能1：查看客户机硬件详情</p><p>双击列表中的单条数据，可直接打开客户机详情</p><p>右键列表中的单条数据，呼出菜单后点击“查看客户机详情”，即可打开客户机详情</p></div></div>
     </section><h2 class="prototype-section-title">硬件详情</h2>`;
     const legacyMarkup = client => `<div class="legacy-hotspots">${['28.05%','31.35%','34.65%','37.95%','41.25%','44.55%'].map((top,index) => `<button class="legacy-hotspot" style="top:${top}" type="button" data-client="${index}" aria-label="查看 ${clients[index].name} 硬件详情"></button>`).join('')}</div><div class="client-context-menu" id="clientContextMenu" role="menu"><button type="button" id="viewClientDetail" role="menuitem">查看客户机详情</button></div><div class="drawer-backdrop" id="drawerBackdrop"></div><aside class="hardware-drawer" id="hardwareDrawer" aria-label="客户机硬件详情"><div class="drawer-head"><div><div class="drawer-kicker">客户机硬件详情</div><h2 class="drawer-title" id="drawerTitle">${client.name}</h2><span class="drawer-group" id="drawerGroup">${client.group}</span></div><button class="icon-button" id="drawerClose" type="button" aria-label="关闭详情">×</button></div><div class="drawer-body" id="drawerBody">${detailMarkup(client)}</div></aside>`;
     function renderHardwarePrototype() {
@@ -342,7 +342,7 @@
       prototypeWindow.innerHTML = prototypeWindow.innerHTML.replaceAll('客户机硬件详情', '客户机详情').replaceAll('硬件详情', '客户机详情');
       content.querySelector('.prototype-section-title').textContent = '客户机详情';
       content.querySelectorAll('.prd-module__content p').forEach(paragraph => { if (paragraph.textContent.trim().startsWith('功能1：')) paragraph.remove(); });
-      Array.from(content.querySelectorAll('.prd-module__content p')).find(paragraph => paragraph.textContent.trim() === '双击列表中的单条数据，即可打开硬件详情')?.insertAdjacentHTML('afterend', '<p>显示字段与列表字段相同</p>');
+      Array.from(content.querySelectorAll('.prd-module__content p')).find(paragraph => paragraph.textContent.trim() === '双击列表中的单条数据，可直接打开客户机详情')?.insertAdjacentHTML('afterend', '<p>显示字段与列表字段相同</p>');
       const drawer = document.getElementById('hardwareDrawer');
       drawer.setAttribute('role', 'dialog');
       drawer.setAttribute('aria-modal', 'true');
